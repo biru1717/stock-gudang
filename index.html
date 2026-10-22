@@ -34,7 +34,43 @@
   <main id="main"></main>
 </div>
 
-<!-- DIALOG EDIT STOK DENGAN OPSI TRANSFER IN / OUT / VENDOR -->
+<!-- DIALOG TAMBAH BARANG (DENGAN KATEGORI) -->
+<dialog id="dItem">
+  <form method="dialog" id="fItem">
+    <h2 id="tItemT">Tambah barang</h2>
+    
+    <label for="iNama">Nama barang</label>
+    <input id="iNama" required maxlength="60" placeholder="Contoh: Kertas A4">
+    
+    <label for="iKategori">Kategori</label>
+    <select id="iKategori" required style="width:100%; padding:8px; margin-bottom:12px; border-radius:6px; background:#0f172a; color:white; border:1px solid #334155;">
+      <option value="Umum">Umum</option>
+      <option value="Makanan & Minuman">Makanan & Minuman</option>
+      <option value="Elektronik">Elektronik</option>
+      <option value="Alat Tulis">Alat Tulis</option>
+      <option value="Bahan Baku">Bahan Baku</option>
+    </select>
+
+    <label for="iDesc">Deskripsi (opsional)</label>
+    <input id="iDesc" maxlength="100" placeholder="Contoh: Gudang utama lantai 2">
+    
+    <div class="row">
+      <div><label for="iStok">Stok awal</label><input id="iStok" type="number" min="0" value="0" required></div>
+      <div><label for="iSatuan">Satuan</label><input id="iSatuan" value="pcs" required maxlength="12"></div>
+    </div>
+    
+    <label for="iMin">Batas minimum stok</label>
+    <input id="iMin" type="number" min="0" value="5" required>
+    <p class="hint">Peringatan muncul saat stok sama dengan atau di bawah angka ini.</p>
+    
+    <div class="foot" style="margin-top:15px; display:flex; justify-content:flex-end; gap:8px;">
+      <button type="button" class="cancel">Batal</button>
+      <button class="primary" type="submit">Simpan</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- DIALOG EDIT STOK (TRANSFER IN / OUT / VENDOR) -->
 <dialog id="dEdit">
   <form method="dialog" id="fEdit">
     <h2 id="tEditT">Edit Stok Barang</h2>
@@ -71,6 +107,8 @@
     </div>
   </form>
 </dialog>
+
+<!-- DIALOG CATAT TRANSAKSI -->
 <dialog id="dTrx">
   <form method="dialog" id="fTrx">
     <h2>Catat transaksi</h2>
@@ -84,11 +122,13 @@
   </form>
 </dialog>
 
+<!-- DIALOG HAPUS -->
 <dialog id="dDel">
   <h2>Hapus barang?</h2>
   <p class="hint" id="pDel" style="font-size:14px"></p>
   <div class="foot"><button type="button" class="cancel">Batal</button><button class="danger" id="bDel">Hapus</button></div>
 </dialog>
+
 <div id="toast"></div>
 
 <script src="app.js"></script>
