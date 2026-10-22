@@ -13,6 +13,17 @@ function initApp() {
     tampilkanData();
     updateStatistik();
 
+    // Event Listener Kategori FOOD
+    const selectKategori = document.getElementById('iKategori');
+    const boxSubFood = document.getElementById('boxSubFood');
+
+    if (selectKategori && boxSubFood) {
+        // Tampilkan/sembunyikan sub-kategori food saat kategori berubah
+        selectKategori.addEventListener('change', () => {
+            boxSubFood.style.display = selectKategori.value === 'FOOD' ? 'block' : 'none';
+        });
+    }
+
     // Tombol Tambah Barang
     const btnAdd = document.getElementById('btnAdd');
     const dItem = document.getElementById('dItem');
@@ -23,6 +34,9 @@ function initApp() {
             e.preventDefault();
             document.getElementById('tItemT').textContent = 'Tambah barang';
             if (fItem) fItem.reset();
+            if (boxSubFood && selectKategori) {
+                boxSubFood.style.display = selectKategori.value === 'FOOD' ? 'block' : 'none';
+            }
             dItem.showModal();
         });
     }
@@ -39,7 +53,8 @@ function initApp() {
         fItem.addEventListener('submit', async (e) => {
             e.preventDefault();
             const nama = document.getElementById('iNama')?.value || '';
-            const kategori = document.getElementById('iKategori')?.value || 'SYRUP';
+            let kategori = document.getElementById('iKategori')?.value || 'FOOD';
+            const subFood = document.getElementById('iSubFood')?.value || 'SANDWICH';
             const desc = document.getElementById('iDesc')?.value || '-';
             const stok = parseInt(document.getElementById('iStok')?.value) || 0;
             const satuan = document.getElementById('iSatuan')?.value || 'pcs';
@@ -47,11 +62,17 @@ function initApp() {
 
             if (!nama.trim()) return;
 
+            // Jika kategori FOOD, gabungkan kategori dengan sub-kategori
+            let kategoriFinal = kategori;
+            if (kategori === 'FOOD') {
+                kategoriFinal = `FOOD - ${subFood}`;
+            }
+
             try {
                 // Simpan barang baru ke koleksi "stok_barang"
                 await window.addDoc(window.collection(window.db, "stok_barang"), {
                     nama: nama,
-                    kategori: kategori,
+                    kategori: kategoriFinal,
                     deskripsi: desc,
                     stok: stok,
                     satuan: satuan,
@@ -63,10 +84,10 @@ function initApp() {
                 await window.addDoc(window.collection(window.db, "riwayat_trx"), {
                     tipe: 'TAMBAH BARANG BARU',
                     namaBarang: nama,
-                    kategori: kategori,
+                    kategori: kategoriFinal,
                     jumlah: stok,
                     satuan: satuan,
-                    catatan: `Kategori: ${kategori} (${desc})`,
+                    catatan: `Kategori: ${kategoriFinal} (${desc})`,
                     tanggal: new Date().toLocaleString('id-ID'),
                     createdAt: new Date().toISOString()
                 });
@@ -125,8 +146,6 @@ function initApp() {
 
             try {
                 const barangDocRef = window.doc(window.db, "stok_barang", selectedBarangEditId);
-                
-                // Ambil data terbaru langsung dari daftar jika getDoc mengalami masalah
                 const stokSnap = await window.getDocs(window.collection(window.db, "stok_barang"));
                 let barangData = null;
                 stokSnap.forEach(docSnap => {
@@ -160,7 +179,7 @@ function initApp() {
                 await window.addDoc(window.collection(window.db, "riwayat_trx"), {
                     tipe: labelTipe,
                     namaBarang: barangData.nama,
-                    kategori: barangData.kategori || 'SYRUP',
+                    kategori: barangData.kategori || 'FOOD',
                     jumlah: qty,
                     satuan: barangData.satuan,
                     catatan: desc,
@@ -293,7 +312,7 @@ function initApp() {
                 await window.addDoc(window.collection(window.db, "riwayat_trx"), {
                     tipe: `Barang ${tipeTrxModal}`,
                     namaBarang: barangData.nama,
-                    kategori: barangData.kategori || 'SYRUP',
+                    kategori: barangData.kategori || 'FOOD',
                     jumlah: qty,
                     satuan: barangData.satuan,
                     catatan: cat,
@@ -389,7 +408,7 @@ async function tampilkanData(keyword = '') {
 
             let filtered = listBarang.filter(item => {
                 let matchKeyword = item.nama.toLowerCase().includes(keyword.toLowerCase());
-                let matchKategori = (activeKategoriFilter === 'Semua' || item.kategori === activeKategoriFilter);
+                let matchKategori = (activeKategoriFilter === 'Semua' || item.kategori === activeKategoriFilter || item.kategori.includes(activeKategoriFilter));
                 return matchKeyword && matchKategori;
             });
 
@@ -411,7 +430,7 @@ async function tampilkanData(keyword = '') {
                         <div>
                             <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
                                 <strong style="font-size: 16px; color: #f8fafc;">${item.nama}</strong>
-                                <span style="background: #334155; color: #38bdf8; font-size: 11px; padding: 2px 8px; border-radius: 12px;">${item.kategori || 'SYRUP'}</span>
+                                <span style="background: #334155; color: #38bdf8; font-size: 11px; padding: 2px 8px; border-radius: 12px;">${item.kategori || 'FOOD'}</span>
                             </div>
                             ${item.deskripsi && item.deskripsi !== '-' ? `<div style="font-size: 13px; color: #94a3b8; margin-top: 2px;">Ket: ${item.deskripsi}</div>` : ''}
                             <div style="font-size: 13px; color: #cbd5e1; margin-top: 4px;">
@@ -457,7 +476,8 @@ async function tampilkanData(keyword = '') {
 
             let filteredRiwayat = riwayatTrx.filter(trx => {
                 let matchKeyword = trx.namaBarang.toLowerCase().includes(keyword.toLowerCase());
-                let matchKategori = (activeKategoriFilter === 'Semua' || (trx.kategori || 'SYRUP') === activeKategoriFilter);
+                let katTrx = trx.kategori || 'FOOD';
+                let matchKategori = (activeKategoriFilter === 'Semua' || katTrx === activeKategoriFilter || katTrx.includes(activeKategoriFilter));
                 return matchKeyword && matchKategori;
             });
 
@@ -480,7 +500,7 @@ async function tampilkanData(keyword = '') {
                                 <div style="font-weight: 600;">
                                     <span style="color: ${color}; font-weight: bold;">[${trx.tipe}]</span> 
                                     ${trx.namaBarang} (${trx.jumlah} ${trx.satuan || ''}) 
-                                    <span style="background: #334155; color: #38bdf8; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 6px;">${trx.kategori || 'SYRUP'}</span>
+                                    <span style="background: #334155; color: #38bdf8; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 6px;">${trx.kategori || 'FOOD'}</span>
                                 </div>
                                 <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Deskripsi: <b>${trx.catatan || '-'}</b></div>
                             </div>
@@ -564,7 +584,7 @@ async function ubahStokQuick(id, delta) {
         await window.addDoc(window.collection(window.db, "riwayat_trx"), {
             tipe: delta > 0 ? 'Tambah Stok' : 'Kurang Stok',
             namaBarang: barang.nama,
-            kategori: barang.kategori || 'SYRUP',
+            kategori: barang.kategori || 'FOOD',
             jumlah: Math.abs(delta),
             satuan: barang.satuan,
             catatan: reason.trim() || '-',
