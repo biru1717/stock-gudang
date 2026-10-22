@@ -2,8 +2,8 @@ const express = require('express');
 const path = require('path');
 const app = express();
 
-// Menyalurkan file statis secara eksplisit
-app.use(express.static(__dirname));
+// Mengizinkan Express membaca seluruh file statis di folder utama
+app.use(express.static(path.join(__dirname)));
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
