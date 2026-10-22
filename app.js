@@ -124,17 +124,23 @@ function initApp() {
             }
 
             try {
-                // Ambil data terbaru barang dari Firestore untuk cek stok
                 const barangDocRef = window.doc(window.db, "stok_barang", selectedBarangEditId);
-                const barangSnap = await window.getDoc(barangDocRef);
                 
-                if (!barangSnap.exists()) {
+                // Ambil data terbaru langsung dari daftar jika getDoc mengalami masalah
+                const stokSnap = await window.getDocs(window.collection(window.db, "stok_barang"));
+                let barangData = null;
+                stokSnap.forEach(docSnap => {
+                    if (docSnap.id === selectedBarangEditId) {
+                        barangData = docSnap.data();
+                    }
+                });
+
+                if (!barangData) {
                     alert("Barang tidak ditemukan!");
                     return;
                 }
 
-                const barangData = barangSnap.data();
-                let stokBaru = barangData.stok;
+                let stokBaru = Number(barangData.stok) || 0;
 
                 if (!isTambah && stokBaru < qty) {
                     alert('Stok tidak mencukupi untuk pengurangan ini!');
@@ -193,7 +199,7 @@ function initApp() {
                         querySnapshot.forEach((docSnap) => {
                             const b = docSnap.data();
                             const opt = document.createElement('option');
-                            opt.value = docSnap.id; // Simpan ID dokumen Firestore
+                            opt.value = docSnap.id;
                             opt.textContent = `${b.nama} (${b.kategori}) - Stok: ${b.stok} ${b.satuan}`;
                             selectBarang.appendChild(opt);
                         });
@@ -255,15 +261,20 @@ function initApp() {
 
             try {
                 const barangDocRef = window.doc(window.db, "stok_barang", barangId);
-                const barangSnap = await window.getDoc(barangDocRef);
+                const stokSnap = await window.getDocs(window.collection(window.db, "stok_barang"));
+                let barangData = null;
+                stokSnap.forEach(docSnap => {
+                    if (docSnap.id === barangId) {
+                        barangData = docSnap.data();
+                    }
+                });
 
-                if (!barangSnap.exists()) {
+                if (!barangData) {
                     alert("Barang tidak ditemukan di database!");
                     return;
                 }
 
-                const barangData = barangSnap.data();
-                let stokBaru = barangData.stok;
+                let stokBaru = Number(barangData.stok) || 0;
 
                 if (tipeTrxModal === 'keluar') {
                     if (stokBaru < qty) {
@@ -330,14 +341,12 @@ async function renderFilterKategori() {
     try {
         let kategoriSet = new Set(['Semua']);
         
-        // Ambil kategori dari koleksi stok_barang
         const stokSnap = await window.getDocs(window.collection(window.db, "stok_barang"));
         stokSnap.forEach(docSnap => {
             const item = docSnap.data();
             if (item.kategori) kategoriSet.add(item.kategori);
         });
 
-        // Ambil kategori dari riwayat_trx juga
         const trxSnap = await window.getDocs(window.collection(window.db, "riwayat_trx"));
         trxSnap.forEach(docSnap => {
             const trx = docSnap.data();
@@ -459,7 +468,6 @@ async function tampilkanData(keyword = '') {
                     </div>`;
             } else {
                 html += '<div style="display: flex; flex-direction: column; gap: 10px;">';
-                // Urutkan berdasarkan waktu terbaru jika ada properti createdAt
                 filteredRiwayat.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
                 
                 filteredRiwayat.forEach(trx => {
@@ -492,11 +500,20 @@ async function tampilkanData(keyword = '') {
 // --- 5. BUKA MODAL EDIT STOK ---
 async function bukaModalEdit(id) {
     try {
-        const barangDocRef = window.doc(window.db, "stok_barang", id);
-        const barangSnap = await window.getDoc(barangDocRef);
-        if (!barangSnap.exists()) return;
+        const querySnapshot = await window.getDocs(window.collection(window.db, "stok_barang"));
+        let barang = null;
+        
+        querySnapshot.forEach(docSnap => {
+            if (docSnap.id === id) {
+                barang = docSnap.data();
+            }
+        });
 
-        const barang = barangSnap.data();
+        if (!barang) {
+            alert("Data barang tidak ditemukan!");
+            return;
+        }
+
         selectedBarangEditId = id;
         
         const dEdit = document.getElementById('dEdit');
@@ -518,21 +535,30 @@ async function bukaModalEdit(id) {
 async function ubahStokQuick(id, delta) {
     try {
         const barangDocRef = window.doc(window.db, "stok_barang", id);
-        const barangSnap = await window.getDoc(barangDocRef);
-        if (!barangSnap.exists()) return;
+        const stokSnap = await window.getDocs(window.collection(window.db, "stok_barang"));
+        let barang = null;
 
-        const barang = barangSnap.data();
+        stokSnap.forEach(docSnap => {
+            if (docSnap.id === id) {
+                barang = docSnap.data();
+            }
+        });
+
+        if (!barang) return;
+
         const aksiStr = delta > 0 ? 'menambahkan' : 'mengurangi';
         const reason = prompt(`Masukkan deskripsi/alasan ${aksiStr} stok "${barang.nama}":`, delta > 0 ? 'Restock' : 'Penggunaan barang');
         
         if (reason === null) return; 
 
-        if (barang.stok + delta < 0) {
+        let stokSekarang = Number(barang.stok) || 0;
+
+        if (stokSekarang + delta < 0) {
             alert('Stok tidak boleh kurang dari 0!');
             return;
         }
 
-        const stokBaru = barang.stok + delta;
+        const stokBaru = stokSekarang + delta;
         await window.updateDoc(barangDocRef, { stok: stokBaru });
 
         await window.addDoc(window.collection(window.db, "riwayat_trx"), {
@@ -581,8 +607,8 @@ async function updateStatistik() {
         });
 
         const totalJenis = listBarang.length;
-        const stokMenipis = listBarang.filter(b => b.stok > 0 && b.stok <= b.min).length;
-        const stokHabis = listBarang.filter(b => b.stok === 0).length;
+        const stokMenipis = listBarang.filter(b => Number(b.stok) > 0 && Number(b.stok) <= Number(b.min)).length;
+        const stokHabis = listBarang.filter(b => Number(b.stok) === 0).length;
 
         if (sTotal) sTotal.textContent = totalJenis;
         if (sLow) sLow.textContent = stokMenipis;
