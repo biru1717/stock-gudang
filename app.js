@@ -1,8 +1,18 @@
-// --- 1. DATA INITIALIZATION (LOCALSTORAGE) ---
+// --- 1. INISIALISASI & NORMALISASI DATA LOCALSTORAGE ---
 let listBarang = JSON.parse(localStorage.getItem('stok_barang')) || [];
 let riwayatTrx = JSON.parse(localStorage.getItem('riwayat_trx')) || [];
 let activeTab = 'stok';
-let tipeTrxModal = 'masuk'; // 'masuk' atau 'keluar'
+let tipeTrxModal = 'masuk';
+
+// Normalisasi data lama agar tidak ada yang NaN / undefined
+listBarang = listBarang.map(item => ({
+    id: item.id || Date.now() + Math.random(),
+    nama: item.nama || 'Tanpa Nama',
+    deskripsi: item.deskripsi || item.jenis || '-',
+    stok: Number(item.stok !== undefined ? item.stok : (item.jumlah !== undefined ? item.jumlah : 0)) || 0,
+    satuan: item.satuan || 'pcs',
+    min: Number(item.min !== undefined ? item.min : 5) || 5
+}));
 
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
@@ -18,7 +28,7 @@ function initApp() {
     tampilkanData();
     updateStatistik();
 
-    // --- A. MODAL TAMBAH BARANG (#btnAdd & #dItem) ---
+    // Tombol Tambah Barang
     const btnAdd = document.getElementById('btnAdd');
     const dItem = document.getElementById('dItem');
     const fItem = document.getElementById('fItem');
@@ -76,7 +86,7 @@ function initApp() {
         });
     }
 
-    // --- B. MODAL CATAT TRANSAKSI (#btnTrx & #dTrx) ---
+    // Tombol Catat Transaksi
     const btnTrx = document.getElementById('btnTrx');
     const dTrx = document.getElementById('dTrx');
     const fTrx = document.getElementById('fTrx');
@@ -86,7 +96,6 @@ function initApp() {
         btnTrx.addEventListener('click', (e) => {
             e.preventDefault();
             
-            // Isi pilihan barang di <select id="tItem">
             if (selectBarang) {
                 selectBarang.innerHTML = '';
                 if (listBarang.length === 0) {
@@ -112,7 +121,6 @@ function initApp() {
             btnBatalTrx.addEventListener('click', () => dTrx.close());
         }
 
-        // Toggle button Masuk / Keluar
         const btnSeg = dTrx.querySelectorAll('#segT button');
         btnSeg.forEach(btn => {
             btn.addEventListener('click', () => {
@@ -122,7 +130,6 @@ function initApp() {
             });
         });
 
-        // Tombol + dan - di jumlah transaksi
         const btnMn = document.getElementById('mn');
         const btnPl = document.getElementById('pl');
         const inputQty = document.getElementById('tQty');
@@ -180,7 +187,7 @@ function initApp() {
         });
     }
 
-    // --- C. TAB STOK & RIWAYAT (#tabs) ---
+    // Tab Stok & Riwayat
     const tabButtons = document.querySelectorAll('#tabs button');
     tabButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -192,7 +199,7 @@ function initApp() {
         });
     });
 
-    // --- D. PENCARIAN (#q) ---
+    // Pencarian
     const searchInput = document.getElementById('q');
     if (searchInput) {
         searchInput.addEventListener('input', () => {
@@ -226,7 +233,7 @@ function tampilkanData(keyword = '') {
                 <div style="background: #1e293b; padding: 16px 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; color: white;">
                     <div>
                         <strong style="font-size: 16px; color: #f8fafc;">${item.nama}</strong>
-                        ${item.deskripsi ? `<div style="font-size: 13px; color: #94a3b8; margin-top: 2px;">Ket: ${item.deskripsi}</div>` : ''}
+                        ${item.deskripsi && item.deskripsi !== '-' ? `<div style="font-size: 13px; color: #94a3b8; margin-top: 2px;">Ket: ${item.deskripsi}</div>` : ''}
                         <div style="font-size: 13px; color: #cbd5e1; margin-top: 4px;">
                             Stok: <span style="color: ${statusWarna}; font-weight: bold;">${item.stok} ${item.satuan}</span> 
                             <span style="color: #64748b; font-size: 12px;">(Min: ${item.min})</span>
@@ -306,7 +313,7 @@ function hapusBarang(id) {
     updateStatistik();
 }
 
-// --- 6. UPDATE STATISTIK DASHBOARD (#sTotal, #sLow, #sOut) ---
+// --- 6. UPDATE STATISTIK DASHBOARD ---
 function updateStatistik() {
     const sTotal = document.getElementById('sTotal');
     const sLow = document.getElementById('sLow');
