@@ -762,3 +762,62 @@ function bukaModalAlerts(judul, items) {
     contentAlertsList.innerHTML = html;
     dAlerts.showModal();
 }
+
+// --- 9. FUNGSI MENAMPILKAN POP-UP DAFTAR BARANG DENGAN FORMAT STRIP 3 & SUB-KATEGORI FOOD ---
+function bukaModalAlerts(judul, items) {
+    const dAlerts = document.getElementById('dAlerts');
+    const tAlertsTitle = document.getElementById('tAlertsTitle');
+    const contentAlertsList = document.getElementById('contentAlertsList');
+
+    if (!dAlerts || !tAlertsTitle || !contentAlertsList) return;
+
+    tAlertsTitle.textContent = judul;
+
+    if (items.length === 0) {
+        contentAlertsList.innerHTML = '<p style="text-align: center; color: #94a3b8; padding: 20px;">Tidak ada barang dalam daftar ini.</p>';
+        dAlerts.showModal();
+        return;
+    }
+
+    // Kelompokkan barang berdasarkan kategori utama dan sub-kategori food
+    let grouped = {};
+    items.forEach(item => {
+        let kat = item.kategori || 'FOOD';
+        if (!grouped[kat]) {
+            grouped[kat] = [];
+        }
+        grouped[kat].push(item);
+    });
+
+    let html = '';
+    for (let kat in grouped) {
+        // Format judul kategori dengan strip 3 (--- KATEGORI ---)
+        let displayKat = kat;
+        if (kat.startsWith('FOOD - ')) {
+            let subFoodName = kat.replace('FOOD - ', '');
+            displayKat = `--- FOOD --- › ${subFoodName}`;
+        } else {
+            displayKat = `--- ${kat} ---`;
+        }
+
+        html += `
+            <div style="background: #1e293b; padding: 12px; border-radius: 8px; border-left: 3px solid #38bdf8; margin-bottom: 8px;">
+                <div style="font-weight: bold; color: #38bdf8; font-size: 13px; margin-bottom: 8px; letter-spacing: 0.5px;">${displayKat}</div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+        `;
+
+        grouped[kat].forEach(b => {
+            html += `
+                <div style="display: flex; justify-content: space-between; font-size: 13px; background: #0f172a; padding: 6px 10px; border-radius: 6px; align-items: center;">
+                    <span style="color: #f8fafc;">• ${b.nama}</span>
+                    <strong style="color: ${b.stok === 0 ? '#ef4444' : '#f59e0b'};">${b.stok} ${b.satuan}</strong>
+                </div>
+            `;
+        });
+
+        html += `</div></div>`;
+    }
+
+    contentAlertsList.innerHTML = html;
+    dAlerts.showModal();
+}
