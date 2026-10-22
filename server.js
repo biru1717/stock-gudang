@@ -46,4 +46,11 @@ app.post("/api/data", (req, res) => {
   res.json({ ok: true });
 });
 
+// Menyajikan file statis seperti CSS/JS
+app.use(express.static(path.join(__dirname)));
+
+// Menampilkan index.html saat halaman utama dibuka
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 app.listen(3000, () => console.log("Server jalan di http://localhost:3000"));
