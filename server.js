@@ -2,10 +2,10 @@ const express = require('express');
 const path = require('path');
 const app = express();
 
-// Menyalurkan folder statis utama agar folder 'css' dan 'js' terbaca
+// Menyalurkan file dan folder statis (termasuk css dan js)
 app.use(express.static(path.join(__dirname)));
 
-// Menampilkan halaman utama (index.html)
+// Menampilkan halaman utama
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
