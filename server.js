@@ -2,8 +2,8 @@ const express = require('express');
 const path = require('path');
 const app = express();
 
-// Menyalurkan file statis dari folder saat ini dengan benar
-app.use(express.static(__dirname));
+// Menyalurkan file statis (CSS, JS, dll) dari folder saat ini
+app.use(express.static(path.join(__dirname)));
 
 // Rute utama website
 app.get('/', (req, res) => {
