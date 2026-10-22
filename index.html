@@ -34,7 +34,7 @@
   <main id="main"></main>
 </div>
 
-<!-- DIALOG TAMBAH BARANG (DENGAN KATEGORI BARU) -->
+<!-- DIALOG TAMBAH BARANG (DENGAN KATEGORI FOOD & SUB-KATEGORI) -->
 <dialog id="dItem">
   <form method="dialog" id="fItem">
     <h2 id="tItemT">Tambah barang</h2>
@@ -44,6 +44,7 @@
     
     <label for="iKategori">Kategori</label>
     <select id="iKategori" required style="width:100%; padding:8px; margin-bottom:12px; border-radius:6px; background:#0f172a; color:white; border:1px solid #334155;">
+      <option value="FOOD">FOOD</option>
       <option value="SYRUP">SYRUP</option>
       <option value="SAUCE">SAUCE</option>
       <option value="BEANS">BEANS</option>
@@ -64,6 +65,17 @@
       <option value="ASSET 2">ASSET 2</option>
       <option value="ASSET 3">ASSET 3</option>
     </select>
+
+    <!-- BOX SUB-KATEGORI FOOD (Hanya muncul jika FOOD dipilih) -->
+    <div id="boxSubFood" style="margin-bottom:12px;">
+      <label for="iSubFood">Sub-Kategori Food</label>
+      <select id="iSubFood" style="width:100%; padding:8px; border-radius:6px; background:#0f172a; color:white; border:1px solid #334155;">
+        <option value="SANDWICH">SANDWICH</option>
+        <option value="POUND CAKE">POUND CAKE</option>
+        <option value="PASTRY">PASTRY</option>
+        <option value="ROLL CAKE">ROLL CAKE</option>
+      </select>
+    </div>
 
     <label for="iDesc">Deskripsi (opsional)</label>
     <input id="iDesc" maxlength="100" placeholder="Contoh: Gudang utama lantai 2">
@@ -154,6 +166,7 @@
     collection, 
     addDoc, 
     getDocs, 
+    getDoc,
     updateDoc,
     deleteDoc, 
     doc 
@@ -178,6 +191,7 @@
   window.collection = collection;
   window.addDoc = addDoc;
   window.getDocs = getDocs;
+  window.getDoc = getDoc;
   window.updateDoc = updateDoc;
   window.deleteDoc = deleteDoc;
   window.doc = doc;
