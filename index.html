@@ -34,21 +34,41 @@
   <main id="main"></main>
 </div>
 
-<dialog id="dItem">
-  <form method="dialog" id="fItem">
-    <h2 id="tItemT">Tambah barang</h2>
-    <label for="iNama">Nama barang</label><input id="iNama" required maxlength="60" placeholder="Contoh: Kertas A4">
+<!-- DIALOG EDIT STOK DENGAN OPSI TRANSFER IN / OUT / VENDOR -->
+<dialog id="dEdit">
+  <form method="dialog" id="fEdit">
+    <h2 id="tEditT">Edit Stok Barang</h2>
+    <p id="pEditNama" style="color: #38bdf8; font-weight: 600; margin-bottom: 12px;"></p>
     
-    <!-- TAMBAHAN INPUT DESKRIPSI -->
-    <label for="iDesc">Deskripsi (opsional)</label><input id="iDesc" maxlength="100" placeholder="Contoh: Barang gudang utama lantai 2">
-    
-    <div class="row">
-      <div><label for="iStok">Stok awal</label><input id="iStok" type="number" min="0" value="0" required></div>
-      <div><label for="iSatuan">Satuan</label><input id="iSatuan" value="pcs" required maxlength="12"></div>
+    <label for="eOpsi">Opsi Transaksi</label>
+    <select id="eOpsi" required style="width:100%; padding:8px; margin-bottom:12px; border-radius:6px; background:#0f172a; color:white; border:1px solid #334155;">
+      <option value="Transfer In">Transfer In (Tambah Stok)</option>
+      <option value="Transfer Out">Transfer Out (Kurang Stok)</option>
+      <option value="Vendor">Vendor</option>
+    </select>
+
+    <div id="boxAksiVendor" style="display:none; margin-bottom:12px;">
+      <label for="eVendorAksi">Aksi Vendor</label>
+      <select id="eVendorAksi" style="width:100%; padding:8px; border-radius:6px; background:#0f172a; color:white; border:1px solid #334155;">
+        <option value="tambah">Tambah Stok (Masuk dari Vendor)</option>
+        <option value="kurang">Kurang Stok (Retur ke Vendor)</option>
+      </select>
     </div>
-    <label for="iMin">Batas minimum stok</label><input id="iMin" type="number" min="0" value="5" required>
-    <p class="hint">Peringatan muncul saat stok sama dengan atau di bawah angka ini.</p>
-    <div class="foot"><button type="button" class="cancel">Batal</button><button class="primary" type="submit">Simpan</button></div>
+
+    <div class="row">
+      <div>
+        <label for="eQty">Jumlah</label>
+        <input id="eQty" type="number" min="1" value="1" required style="width:100%;">
+      </div>
+    </div>
+
+    <label for="eDesc" style="margin-top:10px;">Deskripsi / Catatan</label>
+    <input id="eDesc" maxlength="100" placeholder="Contoh: Pembelian supplier / Mutasi gudang" required style="width:100%;">
+
+    <div class="foot" style="margin-top:15px; display:flex; justify-content:flex-end; gap:8px;">
+      <button type="button" class="cancel">Batal</button>
+      <button class="primary" type="submit">Simpan Perubahan</button>
+    </div>
   </form>
 </dialog>
 <dialog id="dTrx">
