@@ -775,3 +775,14 @@ function bukaModalAlerts(judul, items) {
     contentAlertsList.innerHTML = html;
     dAlerts.showModal();
 }
+window.onSnapshot(window.collection(window.db, "stok_barang"), (querySnapshot) => {
+    let listBarang = [];
+    querySnapshot.forEach(docSnap => {
+        listBarang.push({ id: docSnap.id, ...docSnap.data() });
+    });
+    
+    // Lakukan sesuatu dengan data real-time tersebut
+    console.log("Data Berubah secara Real-time:", listBarang);
+}, (error) => {
+    console.error("Gagal mendengarkan perubahan data:", error);
+});
