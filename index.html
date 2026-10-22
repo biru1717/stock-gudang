@@ -172,7 +172,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-analytics.js";
-  import { 
+  import {  
     getFirestore, 
     collection, 
     addDoc, 
@@ -181,8 +181,9 @@
     updateDoc,
     deleteDoc, 
     doc,
-    onSnapshot
+    onSnapshot  // <--- 1. Pastikan onSnapshot diimpor di sini
   } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
+
   const firebaseConfig = {
     apiKey: "AIzaSyAf_k_MY54xL3HUNNcfu9PxGOJ7qiEOjJs",
     authDomain: "stock-barang-9577f.firebaseapp.com",
@@ -197,6 +198,7 @@
   const analytics = getAnalytics(app);
   const db = getFirestore(app);
 
+  // Daftarkan ke objek window agar bisa diakses oleh app.js
   window.db = db;
   window.collection = collection;
   window.addDoc = addDoc;
@@ -205,6 +207,7 @@
   window.updateDoc = updateDoc;
   window.deleteDoc = deleteDoc;
   window.doc = doc;
+  window.onSnapshot = onSnapshot; // <--- 2. Daftarkan di sini agar bisa dipakai di app.js
 </script>
 
 <script src="app.js"></script>
