@@ -1,57 +1,54 @@
-// --- 1. INISIALISASI DATA LOCALSTORAGE ---
+// --- 1. DATA INITIALIZATION (LOCALSTORAGE) ---
 let listBarang = JSON.parse(localStorage.getItem('stok_barang')) || [];
 let riwayatTrx = JSON.parse(localStorage.getItem('riwayat_trx')) || [];
 let activeTab = 'stok';
+let tipeTrxModal = 'masuk'; // 'masuk' atau 'keluar'
 
-window.onload = function() {
+document.addEventListener('DOMContentLoaded', () => {
     initApp();
-};
-// --- 1. INISIALISASI DATA LOCALSTORAGE ---
-let listBarang = JSON.parse(localStorage.getItem('stok_barang')) || [];
-let riwayatTrx = JSON.parse(localStorage.getItem('riwayat_trx')) || [];
-let activeTab = 'stok';
-
-window.onload = function() {
-    initApp();
-};
+});
 
 function simpanData() {
     localStorage.setItem('stok_barang', JSON.stringify(listBarang));
     localStorage.setItem('riwayat_trx', JSON.stringify(riwayatTrx));
 }
 
-// --- 2. INISIALISASI UTAMA & EVENT LISTENER ---
+// --- 2. INISIALISASI UTAMA & EVENT LISTENERS ---
 function initApp() {
     tampilkanData();
     updateStatistik();
 
-    // Tombol Tambah Barang
+    // --- A. MODAL TAMBAH BARANG (#btnAdd & #dItem) ---
     const btnAdd = document.getElementById('btnAdd');
     const dItem = document.getElementById('dItem');
     const fItem = document.getElementById('fItem');
 
     if (btnAdd && dItem) {
-        btnAdd.onclick = () => {
-            document.getElementById('tItemT').textContent = 'Tambah barang';
-            fItem.reset();
-            dItem.showModal();
-        };
-    }
-
-    const cancelItem = dItem?.querySelector('.cancel');
-    if (cancelItem) {
-        cancelItem.onclick = () => dItem.close();
-    }
-
-    // Submit Form Tambah Barang
-    if (fItem) {
-        fItem.onsubmit = (e) => {
+        btnAdd.addEventListener('click', (e) => {
             e.preventDefault();
-            const nama = document.getElementById('iNama').value;
-            const desc = document.getElementById('iDesc').value || '-';
-            const stok = parseInt(document.getElementById('iStok').value) || 0;
-            const satuan = document.getElementById('iSatuan').value || 'pcs';
-            const batasMin = parseInt(document.getElementById('iMin').value) || 5;
+            document.getElementById('tItemT').textContent = 'Tambah barang';
+            if (fItem) fItem.reset();
+            dItem.showModal();
+        });
+    }
+
+    if (dItem) {
+        const btnBatalItem = dItem.querySelector('.cancel');
+        if (btnBatalItem) {
+            btnBatalItem.addEventListener('click', () => dItem.close());
+        }
+    }
+
+    if (fItem) {
+        fItem.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nama = document.getElementById('iNama')?.value || '';
+            const desc = document.getElementById('iDesc')?.value || '-';
+            const stok = parseInt(document.getElementById('iStok')?.value) || 0;
+            const satuan = document.getElementById('iSatuan')?.value || 'pcs';
+            const batasMin = parseInt(document.getElementById('iMin')?.value) || 5;
+
+            if (!nama.trim()) return;
 
             const barangBaru = {
                 id: Date.now(),
@@ -63,44 +60,148 @@ function initApp() {
             };
 
             listBarang.push(barangBaru);
-            
-            // Catat ke riwayat
+
             riwayatTrx.push({
                 tipe: 'tambah barang baru',
                 namaBarang: nama,
                 jumlah: stok,
                 satuan: satuan,
-                tanggal: new Date().toLocaleString()
+                tanggal: new Date().toLocaleString('id-ID')
             });
 
             simpanData();
             tampilkanData();
             updateStatistik();
             dItem.close();
-        };
+        });
     }
 
-    // Tab Navigasi
-    const tabs = document.querySelectorAll('#tabs button');
-    tabs.forEach(tab => {
-        tab.onclick = () => {
-            tabs.forEach(t => t.classList.remove('on'));
-            tab.classList.add('on');
-            activeTab = tab.getAttribute('data-tab');
+    // --- B. MODAL CATAT TRANSAKSI (#btnTrx & #dTrx) ---
+    const btnTrx = document.getElementById('btnTrx');
+    const dTrx = document.getElementById('dTrx');
+    const fTrx = document.getElementById('fTrx');
+    const selectBarang = document.getElementById('tItem');
+
+    if (btnTrx && dTrx) {
+        btnTrx.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            // Isi pilihan barang di <select id="tItem">
+            if (selectBarang) {
+                selectBarang.innerHTML = '';
+                if (listBarang.length === 0) {
+                    selectBarang.innerHTML = '<option value="">Belum ada barang</option>';
+                } else {
+                    listBarang.forEach(b => {
+                        const opt = document.createElement('option');
+                        opt.value = b.id;
+                        opt.textContent = `${b.nama} (Stok: ${b.stok} ${b.satuan})`;
+                        selectBarang.appendChild(opt);
+                    });
+                }
+            }
+
+            if (fTrx) fTrx.reset();
+            dTrx.showModal();
+        });
+    }
+
+    if (dTrx) {
+        const btnBatalTrx = dTrx.querySelector('.cancel');
+        if (btnBatalTrx) {
+            btnBatalTrx.addEventListener('click', () => dTrx.close());
+        }
+
+        // Toggle button Masuk / Keluar
+        const btnSeg = dTrx.querySelectorAll('#segT button');
+        btnSeg.forEach(btn => {
+            btn.addEventListener('click', () => {
+                btnSeg.forEach(b => b.classList.remove('on'));
+                btn.classList.add('on');
+                tipeTrxModal = btn.getAttribute('data-t') || 'masuk';
+            });
+        });
+
+        // Tombol + dan - di jumlah transaksi
+        const btnMn = document.getElementById('mn');
+        const btnPl = document.getElementById('pl');
+        const inputQty = document.getElementById('tQty');
+
+        if (btnMn && inputQty) {
+            btnMn.onclick = () => {
+                let val = parseInt(inputQty.value) || 1;
+                if (val > 1) inputQty.value = val - 1;
+            };
+        }
+        if (btnPl && inputQty) {
+            btnPl.onclick = () => {
+                let val = parseInt(inputQty.value) || 1;
+                inputQty.value = val + 1;
+            };
+        }
+    }
+
+    if (fTrx) {
+        fTrx.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const barangId = parseInt(selectBarang?.value);
+            const qty = parseInt(document.getElementById('tQty')?.value) || 0;
+            const cat = document.getElementById('tCat')?.value || '-';
+
+            const barang = listBarang.find(b => b.id === barangId);
+            if (!barang) {
+                alert('Pilih barang terlebih dahulu!');
+                return;
+            }
+
+            if (tipeTrxModal === 'keluar') {
+                if (barang.stok < qty) {
+                    alert('Stok tidak mencukupi untuk transaksi keluar!');
+                    return;
+                }
+                barang.stok -= qty;
+            } else {
+                barang.stok += qty;
+            }
+
+            riwayatTrx.push({
+                tipe: `barang ${tipeTrxModal}`,
+                namaBarang: barang.nama,
+                jumlah: qty,
+                satuan: barang.satuan,
+                catatan: cat,
+                tanggal: new Date().toLocaleString('id-ID')
+            });
+
+            simpanData();
             tampilkanData();
-        };
+            updateStatistik();
+            dTrx.close();
+        });
+    }
+
+    // --- C. TAB STOK & RIWAYAT (#tabs) ---
+    const tabButtons = document.querySelectorAll('#tabs button');
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            tabButtons.forEach(b => b.classList.remove('on'));
+            btn.classList.add('on');
+            activeTab = btn.getAttribute('data-tab') || 'stok';
+            tampilkanData();
+        });
     });
 
-    // Pencarian
+    // --- D. PENCARIAN (#q) ---
     const searchInput = document.getElementById('q');
     if (searchInput) {
-        searchInput.oninput = () => {
+        searchInput.addEventListener('input', () => {
             tampilkanData(searchInput.value);
-        };
+        });
     }
 }
 
-// --- 3. MENAMPILKAN DATA KE LAYAR ---
+// --- 3. MENAMPILKAN DATA KE <main id="main"> ---
 function tampilkanData(keyword = '') {
     const main = document.getElementById('main');
     if (!main) return;
@@ -109,7 +210,10 @@ function tampilkanData(keyword = '') {
         let filtered = listBarang.filter(item => item.nama.toLowerCase().includes(keyword.toLowerCase()));
 
         if (filtered.length === 0) {
-            main.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 40px;">Belum ada barang. Mulai dengan menambahkan barang pertama.</div>`;
+            main.innerHTML = `
+                <div style="text-align: center; color: #94a3b8; padding: 40px; background: #1e293b; border-radius: 12px; margin-top: 10px;">
+                    <p>Belum ada barang. Mulai dengan menambahkan barang pertama.</p>
+                </div>`;
             return;
         }
 
@@ -119,19 +223,19 @@ function tampilkanData(keyword = '') {
             if (item.stok === 0) statusWarna = '#ef4444';
 
             html += `
-                <div style="background: #1e293b; padding: 15px 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; color: white;">
+                <div style="background: #1e293b; padding: 16px 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; color: white;">
                     <div>
-                        <strong style="font-size: 16px;">${item.nama}</strong>
-                        <div style="font-size: 13px; color: #94a3b8; margin-top: 2px;">Ket: ${item.deskripsi}</div>
+                        <strong style="font-size: 16px; color: #f8fafc;">${item.nama}</strong>
+                        ${item.deskripsi ? `<div style="font-size: 13px; color: #94a3b8; margin-top: 2px;">Ket: ${item.deskripsi}</div>` : ''}
                         <div style="font-size: 13px; color: #cbd5e1; margin-top: 4px;">
                             Stok: <span style="color: ${statusWarna}; font-weight: bold;">${item.stok} ${item.satuan}</span> 
-                            (Min: ${item.min})
+                            <span style="color: #64748b; font-size: 12px;">(Min: ${item.min})</span>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 6px; align-items: center;">
-                        <button onclick="ubahStok(${item.id}, -1)" title="Kurangi Stok" style="background: #334155; color: white; border: none; width: 30px; height: 30px; border-radius: 6px; cursor: pointer; font-weight: bold;">-</button>
-                        <button onclick="ubahStok(${item.id}, 1)" title="Tambah Stok" style="background: #334155; color: white; border: none; width: 30px; height: 30px; border-radius: 6px; cursor: pointer; font-weight: bold;">+</button>
-                        <button onclick="hapusBarang(${item.id})" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; margin-left: 6px;">Hapus</button>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button onclick="ubahStokQuick(${item.id}, -1)" title="Kurangi Stok" style="background: #334155; color: white; border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">-</button>
+                        <button onclick="ubahStokQuick(${item.id}, 1)" title="Tambah Stok" style="background: #334155; color: white; border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">+</button>
+                        <button onclick="hapusBarang(${item.id})" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; margin-left: 4px;">Hapus</button>
                     </div>
                 </div>
             `;
@@ -141,16 +245,25 @@ function tampilkanData(keyword = '') {
 
     } else if (activeTab === 'riwayat') {
         if (riwayatTrx.length === 0) {
-            main.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 40px;">Belum ada riwayat transaksi.</div>`;
+            main.innerHTML = `
+                <div style="text-align: center; color: #94a3b8; padding: 40px; background: #1e293b; border-radius: 12px; margin-top: 10px;">
+                    <p>Belum ada riwayat transaksi.</p>
+                </div>`;
             return;
         }
 
-        let html = '<div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">';
+        let html = '<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">';
         riwayatTrx.slice().reverse().forEach(trx => {
+            const isKeluar = trx.tipe.includes('keluar');
+            const color = isKeluar ? '#ef4444' : '#10b981';
+
             html += `
-                <div style="background: #1e293b; padding: 12px 18px; border-radius: 8px; color: white; font-size: 14px;">
-                    <div><b>${trx.tipe.toUpperCase()}</b> - ${trx.namaBarang} (${trx.jumlah} ${trx.satuan || ''})</div>
-                    <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">${trx.tanggal}</div>
+                <div style="background: #1e293b; padding: 14px 18px; border-radius: 8px; color: white; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 600;"><span style="color: ${color}; font-weight: bold;">[${trx.tipe.toUpperCase()}]</span> ${trx.namaBarang} (${trx.jumlah} ${trx.satuan || ''})</div>
+                        ${trx.catatan ? `<div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Catatan: ${trx.catatan}</div>` : ''}
+                    </div>
+                    <div style="font-size: 12px; color: #64748b;">${trx.tanggal}</div>
                 </div>
             `;
         });
@@ -159,29 +272,24 @@ function tampilkanData(keyword = '') {
     }
 }
 
-// --- 4. FITUR TAMBAH / KURANG STOK LANGSUNG ---
-function ubahStokid(id, jumlahUbah) {
-    // Fungsi pembantu jika terpanggil
-}
-
-function ubahStok(id, jumlahUbah) {
-    const barang = listBarang.find(item => item.id === id);
+// --- 4. AKSI UBAH STOK CEPAT (+ / -) ---
+function ubahStokQuick(id, delta) {
+    const barang = listBarang.find(b => b.id === id);
     if (!barang) return;
 
-    if (barang.stok + jumlahUbah < 0) {
-        alert("Stok tidak boleh kurang dari 0!");
+    if (barang.stok + delta < 0) {
+        alert('Stok tidak boleh kurang dari 0!');
         return;
     }
 
-    barang.stok += jumlahUbah;
+    barang.stok += delta;
 
-    // Catat ke riwayat
     riwayatTrx.push({
-        tipe: jumlahUbah > 0 ? 'tambah stok' : 'kurang stok',
+        tipe: delta > 0 ? 'tambah stok' : 'kurang stok',
         namaBarang: barang.nama,
-        jumlah: Math.abs(jumlahUbah),
+        jumlah: Math.abs(delta),
         satuan: barang.satuan,
-        tanggal: new Date().toLocaleString()
+        tanggal: new Date().toLocaleString('id-ID')
     });
 
     simpanData();
@@ -191,171 +299,22 @@ function ubahStok(id, jumlahUbah) {
 
 // --- 5. HAPUS BARANG ---
 function hapusBarang(id) {
-    listBarang = listBarang.filter(item => item.id !== id);
+    if (!confirm('Yakin ingin menghapus barang ini?')) return;
+    listBarang = listBarang.filter(b => b.id !== id);
     simpanData();
     tampilkanData();
     updateStatistik();
 }
 
-// --- 6. UPDATE ANGKA STATISTIK ATAS ---
+// --- 6. UPDATE STATISTIK DASHBOARD (#sTotal, #sLow, #sOut) ---
 function updateStatistik() {
     const sTotal = document.getElementById('sTotal');
     const sLow = document.getElementById('sLow');
     const sOut = document.getElementById('sOut');
 
     const totalJenis = listBarang.length;
-    const stokMenipis = listBarang.filter(item => item.stok > 0 && item.stok <= item.min).length;
-    const stokHabis = listBarang.filter(item => item.stok === 0).length;
-
-    if (sTotal) sTotal.textContent = totalJenis;
-    if (sLow) sLow.textContent = stokMenipis;
-    if (sOut) sOut.textContent = stokHabis;
-}
-function simpanData() {
-    localStorage.setItem('stok_barang', JSON.stringify(listBarang));
-    localStorage.setItem('riwayat_trx', JSON.stringify(riwayatTrx));
-}
-
-// --- 2. INISIALISASI UTAMA & EVENT LISTENER ---
-function initApp() {
-    tampilkanData();
-    updateStatistik();
-
-    // Tombol Tambah Barang (Membuka dialog/modal dItem)
-    const btnAdd = document.getElementById('btnAdd');
-    const dItem = document.getElementById('dItem');
-    const fItem = document.getElementById('fItem');
-
-    if (btnAdd && dItem) {
-        btnAdd.onclick = () => {
-            document.getElementById('tItemT').textContent = 'Tambah barang';
-            fItem.reset();
-            dItem.showModal();
-        };
-    }
-
-    // Tombol Batal di dalam dialog dItem
-    const cancelItem = dItem?.querySelector('.cancel');
-    if (cancelItem) {
-        cancelItem.onclick = () => dItem.close();
-    }
-
-    // Submit form tambah barang
-    if (fItem) {
-        fItem.onsubmit = (e) => {
-            e.preventDefault();
-            const nama = document.getElementById('iNama').value;
-            const stok = parseInt(document.getElementById('iStok').value) || 0;
-            const satuan = document.getElementById('iSatuan').value || 'pcs';
-            const batasMin = parseInt(document.getElementById('iMin').value) || 5;
-
-            const barangBaru = {
-                id: Date.now(),
-                nama: nama,
-                stok: stok,
-                satuan: satuan,
-                min: batasMin
-            };
-
-            listBarang.push(barangBaru);
-            simpanData();
-            tampilkanData();
-            updateStatistik();
-            dItem.close();
-        };
-    }
-
-    // Tab Stok & Riwayat
-    const tabs = document.querySelectorAll('#tabs button');
-    tabs.forEach(tab => {
-        tab.onclick = () => {
-            tabs.forEach(t => t.classList.remove('on'));
-            tab.classList.add('on');
-            activeTab = tab.getAttribute('data-tab');
-            tampilkanData();
-        };
-    });
-
-    // Fitur Pencarian
-    const searchInput = document.getElementById('q');
-    if (searchInput) {
-        searchInput.oninput = () => {
-            tampilkanData(searchInput.value);
-        };
-    }
-}
-
-// --- 3. MENAMPILKAN DATA KE ELEMENT <main id="main"> ---
-function tampilkanData(keyword = '') {
-    const main = document.getElementById('main');
-    if (!main) return;
-
-    if (activeTab === 'stok') {
-        let filtered = listBarang.filter(item => item.nama.toLowerCase().includes(keyword.toLowerCase()));
-
-        if (filtered.length === 0) {
-            main.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 40px;">Belum ada barang. Mulai dengan menambahkan barang pertama.</div>`;
-            return;
-        }
-
-        let html = '<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">';
-        filtered.forEach(item => {
-            let statusWarna = item.stok <= item.min ? '#f59e0b' : '#38bdf8';
-            if (item.stok === 0) statusWarna = '#ef4444';
-
-            html += `
-                <div style="background: #1e293b; padding: 15px 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; color: white;">
-                    <div>
-                        <strong style="font-size: 16px;">${item.nama}</strong>
-                        <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">
-                            Stok: <span style="color: ${statusWarna}; font-weight: bold;">${item.stok} ${item.satuan}</span> 
-                            (Min: ${item.min})
-                        </div>
-                    </div>
-                    <button onclick="hapusBarang(${item.id})" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Hapus</button>
-                </div>
-            `;
-        });
-        html += '</div>';
-        main.innerHTML = html;
-
-    } else if (activeTab === 'riwayat') {
-        if (riwayatTrx.length === 0) {
-            main.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 40px;">Belum ada riwayat transaksi.</div>`;
-            return;
-        }
-
-        let html = '<div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">';
-        riwayatTrx.slice().reverse().forEach(trx => {
-            html += `
-                <div style="background: #1e293b; padding: 12px 18px; border-radius: 8px; color: white; font-size: 14px;">
-                    <div><b>${trx.tipe.toUpperCase()}</b> - ${trx.namaBarang} (${trx.jumlah} ${trx.satuan})</div>
-                    <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">${trx.tanggal}</div>
-                </div>
-            `;
-        });
-        html += '</div>';
-        main.innerHTML = html;
-    }
-}
-
-// --- 4. HAPUS BARANG ---
-function hapusBarang(id) {
-    listBarang = listBarang.filter(item => item.id !== id);
-    simpanData();
-    tampilkanData();
-    updateStatistik();
-}
-
-// --- 5. UPDATE ANGKA STATISTIK ATAS ---
-function updateStatistik() {
-    const sTotal = document.getElementById('sTotal');
-    const sLow = document.getElementById('sLow');
-    const sOut = document.getElementById('sOut');
-
-    const totalJenis = listBarang.length;
-    const stokMenipis = listBarang.filter(item => item.stok > 0 && item.stok <= item.min).length;
-    const stokHabis = listBarang.filter(item => item.stok === 0).length;
+    const stokMenipis = listBarang.filter(b => b.stok > 0 && b.stok <= b.min).length;
+    const stokHabis = listBarang.filter(b => b.stok === 0).length;
 
     if (sTotal) sTotal.textContent = totalJenis;
     if (sLow) sLow.textContent = stokMenipis;
