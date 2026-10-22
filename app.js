@@ -1,6 +1,7 @@
 // --- 1. INISIALISASI VARIABEL GLOBAL & STATE ---
 let activeTab = 'stok';
 let activeKategoriFilter = 'Semua';
+let activeSubFoodFilter = 'Semua'; // State khusus sub-kategori food
 let tipeTrxModal = 'masuk';
 let selectedBarangEditId = null;
 
@@ -13,12 +14,11 @@ function initApp() {
     tampilkanData();
     updateStatistik();
 
-    // Event Listener Kategori FOOD
+    // Event Listener Kategori FOOD di Modal Tambah Barang
     const selectKategori = document.getElementById('iKategori');
     const boxSubFood = document.getElementById('boxSubFood');
 
     if (selectKategori && boxSubFood) {
-        // Tampilkan/sembunyikan sub-kategori food saat kategori berubah
         selectKategori.addEventListener('change', () => {
             boxSubFood.style.display = selectKategori.value === 'FOOD' ? 'block' : 'none';
         });
@@ -62,14 +62,12 @@ function initApp() {
 
             if (!nama.trim()) return;
 
-            // Jika kategori FOOD, gabungkan kategori dengan sub-kategori
             let kategoriFinal = kategori;
             if (kategori === 'FOOD') {
                 kategoriFinal = `FOOD - ${subFood}`;
             }
 
             try {
-                // Simpan barang baru ke koleksi "stok_barang"
                 await window.addDoc(window.collection(window.db, "stok_barang"), {
                     nama: nama,
                     kategori: kategoriFinal,
@@ -80,7 +78,6 @@ function initApp() {
                     createdAt: new Date().toISOString()
                 });
 
-                // Catat juga ke riwayat transaksi
                 await window.addDoc(window.collection(window.db, "riwayat_trx"), {
                     tipe: 'TAMBAH BARANG BARU',
                     namaBarang: nama,
@@ -172,10 +169,8 @@ function initApp() {
                     stokBaru -= qty;
                 }
 
-                // Update stok di Firestore
                 await window.updateDoc(barangDocRef, { stok: stokBaru });
 
-                // Catat riwayat transaksi ke Firestore
                 await window.addDoc(window.collection(window.db, "riwayat_trx"), {
                     tipe: labelTipe,
                     namaBarang: barangData.nama,
@@ -305,10 +300,8 @@ function initApp() {
                     stokBaru += qty;
                 }
 
-                // Update stok di Firestore
                 await window.updateDoc(barangDocRef, { stok: stokBaru });
 
-                // Catat riwayat transaksi
                 await window.addDoc(window.collection(window.db, "riwayat_trx"), {
                     tipe: `Barang ${tipeTrxModal}`,
                     namaBarang: barangData.nama,
@@ -339,6 +332,7 @@ function initApp() {
             btn.classList.add('on');
             activeTab = btn.getAttribute('data-tab') || 'stok';
             activeKategoriFilter = 'Semua'; 
+            activeSubFoodFilter = 'Semua';
             tampilkanData();
         });
     });
@@ -352,33 +346,61 @@ function initApp() {
     }
 }
 
-// --- 3. RENDER TOMBOL FILTER KATEGORI ---
+// --- 3. RENDER TOMBOL FILTER KATEGORI DENGAN DROPDOWN SUB-FOOD ---
 async function renderFilterKategori() {
     const filtersContainer = document.getElementById('filters');
     if (!filtersContainer) return;
 
     try {
-        let kategoriSet = new Set(['Semua']);
+        let baseCategories = new Set(['Semua']);
         
         const stokSnap = await window.getDocs(window.collection(window.db, "stok_barang"));
         stokSnap.forEach(docSnap => {
             const item = docSnap.data();
-            if (item.kategori) kategoriSet.add(item.kategori);
+            if (item.kategori) {
+                // Ambil kategori utamanya saja (misal: jika "FOOD - SANDWICH", ambil "FOOD")
+                let mainKat = item.kategori.split(' - ')[0];
+                baseCategories.add(mainKat);
+            }
         });
 
         const trxSnap = await window.getDocs(window.collection(window.db, "riwayat_trx"));
         trxSnap.forEach(docSnap => {
             const trx = docSnap.data();
-            if (trx.kategori) kategoriSet.add(trx.kategori);
+            if (trx.kategori) {
+                let mainKat = trx.kategori.split(' - ')[0];
+                baseCategories.add(mainKat);
+            }
         });
 
-        let html = '<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px;">';
-        kategoriSet.forEach(kat => {
+        let html = '<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; align-items: center;">';
+        
+        baseCategories.forEach(kat => {
             let isActive = activeKategoriFilter === kat;
             let bgStyle = isActive ? 'background: #38bdf8; color: #0f172a; font-weight: bold;' : 'background: #1e293b; color: #94a3b8;';
-            html += `<button onclick="setFilterKategori('${kat}')" style="border: none; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 13px; ${bgStyle}">${kat}</button>`;
+            
+            // Jika kategori FOOD dan sedang aktif, tambahkan ikon tanda panah kebawah/samping
+            let labelKat = kat;
+            if (kat === 'FOOD') {
+                labelKat = kat + (isActive ? ' ▾' : ' ▸');
+            }
+
+            html += `<button onclick="setFilterKategori('${kat}')" style="border: none; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 13px; ${bgStyle}">${labelKat}</button>`;
         });
         html += '</div>';
+
+        // JIKA KATEGORI "FOOD" DIPILIH, MUNCULKAN BARIS KEDUA KHUSUS SUB-KATEGORI FOOD
+        if (activeKategoriFilter === 'FOOD') {
+            let subFoodList = ['Semua', 'SANDWICH', 'POUND CAKE', 'PASTRY', 'ROLL CAKE'];
+            html += '<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; padding-left: 10px; border-left: 2px solid #38bdf8;">';
+            
+            subFoodList.forEach(sub => {
+                let isSubActive = activeSubFoodFilter === sub;
+                let subBgStyle = isSubActive ? 'background: #0284c7; color: white; font-weight: bold;' : 'background: #1e293b; color: #64748b;';
+                html += `<button onclick="setSubFoodFilter('${sub}')" style="border: none; padding: 4px 10px; border-radius: 15px; cursor: pointer; font-size: 11px; ${subBgStyle}">↳ ${sub}</button>`;
+            });
+            html += '</div>';
+        }
 
         filtersContainer.innerHTML = html;
     } catch (error) {
@@ -388,6 +410,15 @@ async function renderFilterKategori() {
 
 function setFilterKategori(kat) {
     activeKategoriFilter = kat;
+    if (kat !== 'FOOD') {
+        activeSubFoodFilter = 'Semua'; // Reset sub-food jika pindah kategori lain
+    }
+    const searchInput = document.getElementById('q');
+    tampilkanData(searchInput ? searchInput.value : '');
+}
+
+function setSubFoodFilter(sub) {
+    activeSubFoodFilter = sub;
     const searchInput = document.getElementById('q');
     tampilkanData(searchInput ? searchInput.value : '');
 }
@@ -408,7 +439,24 @@ async function tampilkanData(keyword = '') {
 
             let filtered = listBarang.filter(item => {
                 let matchKeyword = item.nama.toLowerCase().includes(keyword.toLowerCase());
-                let matchKategori = (activeKategoriFilter === 'Semua' || item.kategori === activeKategoriFilter || item.kategori.includes(activeKategoriFilter));
+                
+                let katItem = item.kategori || 'FOOD';
+                let matchKategori = false;
+
+                if (activeKategoriFilter === 'Semua') {
+                    matchKategori = true;
+                } else if (activeKategoriFilter === 'FOOD') {
+                    if (katItem.startsWith('FOOD')) {
+                        if (activeSubFoodFilter === 'Semua') {
+                            matchKategori = true;
+                        } else {
+                            matchKategori = katItem === `FOOD - ${activeSubFoodFilter}`;
+                        }
+                    }
+                } else {
+                    matchKategori = katItem === activeKategoriFilter;
+                }
+
                 return matchKeyword && matchKategori;
             });
 
@@ -477,7 +525,22 @@ async function tampilkanData(keyword = '') {
             let filteredRiwayat = riwayatTrx.filter(trx => {
                 let matchKeyword = trx.namaBarang.toLowerCase().includes(keyword.toLowerCase());
                 let katTrx = trx.kategori || 'FOOD';
-                let matchKategori = (activeKategoriFilter === 'Semua' || katTrx === activeKategoriFilter || katTrx.includes(activeKategoriFilter));
+                let matchKategori = false;
+
+                if (activeKategoriFilter === 'Semua') {
+                    matchKategori = true;
+                } else if (activeKategoriFilter === 'FOOD') {
+                    if (katTrx.startsWith('FOOD')) {
+                        if (activeSubFoodFilter === 'Semua') {
+                            matchKategori = true;
+                        } else {
+                            matchKategori = katTrx === `FOOD - ${activeSubFoodFilter}`;
+                        }
+                    }
+                } else {
+                    matchKategori = katTrx === activeKategoriFilter;
+                }
+
                 return matchKeyword && matchKategori;
             });
 
