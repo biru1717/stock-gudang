@@ -1,14 +1,16 @@
-// --- 1. INISIALISASI DATA LOCALSTORAGE ---
+// --- 1. INISIALISASI & NORMALISASI DATA LOCALSTORAGE ---
 let listBarang = JSON.parse(localStorage.getItem('stok_barang')) || [];
 let riwayatTrx = JSON.parse(localStorage.getItem('riwayat_trx')) || [];
 let activeTab = 'stok';
+let activeKategoriFilter = 'Semua';
 let tipeTrxModal = 'masuk';
 let selectedBarangEditId = null;
 
-// Normalisasi data
+// Normalisasi data lama
 listBarang = listBarang.map(item => ({
     id: item.id || Date.now() + Math.random(),
     nama: item.nama || 'Tanpa Nama',
+    kategori: item.kategori || 'Umum',
     deskripsi: item.deskripsi || item.jenis || '-',
     stok: Number(item.stok !== undefined ? item.stok : (item.jumlah !== undefined ? item.jumlah : 0)) || 0,
     satuan: item.satuan || 'pcs',
@@ -54,6 +56,7 @@ function initApp() {
         fItem.addEventListener('submit', (e) => {
             e.preventDefault();
             const nama = document.getElementById('iNama')?.value || '';
+            const kategori = document.getElementById('iKategori')?.value || 'Umum';
             const desc = document.getElementById('iDesc')?.value || '-';
             const stok = parseInt(document.getElementById('iStok')?.value) || 0;
             const satuan = document.getElementById('iSatuan')?.value || 'pcs';
@@ -64,6 +67,7 @@ function initApp() {
             const barangBaru = {
                 id: Date.now(),
                 nama: nama,
+                kategori: kategori,
                 deskripsi: desc,
                 stok: stok,
                 satuan: satuan,
@@ -77,7 +81,7 @@ function initApp() {
                 namaBarang: nama,
                 jumlah: stok,
                 satuan: satuan,
-                catatan: `Barang baru dibuat (${desc})`,
+                catatan: `Kategori: ${kategori} (${desc})`,
                 tanggal: new Date().toLocaleString('id-ID')
             });
 
@@ -256,7 +260,7 @@ function initApp() {
         });
     }
 
-    // Tab Navigasi
+    // Tab Navigasi (Stok & Riwayat)
     const tabButtons = document.querySelectorAll('#tabs button');
     tabButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -277,41 +281,54 @@ function initApp() {
     }
 }
 
-// --- 3. BUKA DIALOG EDIT STOK BARANG ---
-function bukaModalEdit(id) {
-    const barang = listBarang.find(b => b.id === id);
-    if (!barang) return;
+// --- 3. RENDER TOMBOL FILTER KATEGORI OTOMATIS ---
+function renderFilterKategori() {
+    const filtersContainer = document.getElementById('filters');
+    if (!filtersContainer) return;
 
-    selectedBarangEditId = id;
-    const dEdit = document.getElementById('dEdit');
-    const fEdit = document.getElementById('fEdit');
-    const pEditNama = document.getElementById('pEditNama');
-    const boxAksiVendor = document.getElementById('boxAksiVendor');
+    // Ambil daftar kategori unik dari data barang + opsi "Semua"
+    let kategoriSet = new Set(['Semua']);
+    listBarang.forEach(item => kategoriSet.add(item.kategori || 'Umum'));
 
-    if (pEditNama) pEditNama.textContent = `Barang: ${barang.nama} (Stok saat ini: ${barang.stok} ${barang.satuan})`;
-    if (fEdit) fEdit.reset();
-    if (boxAksiVendor) boxAksiVendor.style.display = 'none';
+    let html = '<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px;">';
+    kategoriSet.forEach(kat => {
+        let isActive = activeKategoriFilter === kat;
+        let bgStyle = isActive ? 'background: #38bdf8; color: #0f172a; font-weight: bold;' : 'background: #1e293b; color: #94a3b8;';
+        html += `<button onclick="setFilterKategori('${kat}')" style="border: none; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 13px; ${bgStyle}">${kat}</button>`;
+    });
+    html += '</div>';
 
-    if (dEdit) dEdit.showModal();
+    filtersContainer.innerHTML = html;
+}
+
+function setFilterKategori(kat) {
+    activeKategoriFilter = kat;
+    const searchInput = document.getElementById('q');
+    tampilkanData(searchInput ? searchInput.value : '');
 }
 
 // --- 4. MENAMPILKAN DATA KE <main id="main"> ---
 function tampilkanData(keyword = '') {
+    renderFilterKategori();
     const main = document.getElementById('main');
     if (!main) return;
 
     if (activeTab === 'stok') {
-        let filtered = listBarang.filter(item => item.nama.toLowerCase().includes(keyword.toLowerCase()));
+        let filtered = listBarang.filter(item => {
+            let matchKeyword = item.nama.toLowerCase().includes(keyword.toLowerCase());
+            let matchKategori = (activeKategoriFilter === 'Semua' || item.kategori === activeKategoriFilter);
+            return matchKeyword && matchKategori;
+        });
 
         if (filtered.length === 0) {
             main.innerHTML = `
                 <div style="text-align: center; color: #94a3b8; padding: 40px; background: #1e293b; border-radius: 12px; margin-top: 10px;">
-                    <p>Belum ada barang. Mulai dengan menambahkan barang pertama.</p>
+                    <p>Belum ada barang pada kategori ini.</p>
                 </div>`;
             return;
         }
 
-        let html = '<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">';
+        let html = '<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 5px;">';
         filtered.forEach(item => {
             let statusWarna = item.stok <= item.min ? '#f59e0b' : '#38bdf8';
             if (item.stok === 0) statusWarna = '#ef4444';
@@ -319,7 +336,10 @@ function tampilkanData(keyword = '') {
             html += `
                 <div style="background: #1e293b; padding: 16px 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; color: white;">
                     <div>
-                        <strong style="font-size: 16px; color: #f8fafc;">${item.nama}</strong>
+                        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
+                            <strong style="font-size: 16px; color: #f8fafc;">${item.nama}</strong>
+                            <span style="background: #334155; color: #38bdf8; font-size: 11px; padding: 2px 8px; border-radius: 12px;">${item.kategori || 'Umum'}</span>
+                        </div>
                         ${item.deskripsi && item.deskripsi !== '-' ? `<div style="font-size: 13px; color: #94a3b8; margin-top: 2px;">Ket: ${item.deskripsi}</div>` : ''}
                         <div style="font-size: 13px; color: #cbd5e1; margin-top: 4px;">
                             Stok: <span style="color: ${statusWarna}; font-weight: bold;">${item.stok} ${item.satuan}</span> 
@@ -339,38 +359,69 @@ function tampilkanData(keyword = '') {
         main.innerHTML = html;
 
     } else if (activeTab === 'riwayat') {
+        // Dashboard Ringkasan / Grafik Statistik Sederhana di Tab Riwayat
+        let totalMasuk = riwayatTrx.filter(t => !t.tipe.toLowerCase().includes('out') && !t.tipe.toLowerCase().includes('kurang')).length;
+        let totalKeluar = riwayatTrx.filter(t => t.tipe.toLowerCase().includes('out') || t.tipe.toLowerCase().includes('kurang') || t.tipe.toLowerCase().includes('keluar')).length;
+
+        let html = `
+            <div style="background: #1e293b; padding: 20px; border-radius: 12px; margin-bottom: 20px; color: white;">
+                <h3 style="margin-bottom: 10px; font-size: 16px; color: #38bdf8;">📊 Dashboard Ringkasan Aktivitas</h3>
+                <div style="display: flex; gap: 20px; font-size: 14px;">
+                    <div>Total Transaksi Masuk: <b style="color: #10b981;">${totalMasuk}</b></div>
+                    <div>Total Transaksi Keluar/Keluar Gudang: <b style="color: #ef4444;">${totalKeluar}</b></div>
+                </div>
+            </div>
+        `;
+
         if (riwayatTrx.length === 0) {
-            main.innerHTML = `
-                <div style="text-align: center; color: #94a3b8; padding: 40px; background: #1e293b; border-radius: 12px; margin-top: 10px;">
+            html += `
+                <div style="text-align: center; color: #94a3b8; padding: 40px; background: #1e293b; border-radius: 12px;">
                     <p>Belum ada riwayat transaksi.</p>
                 </div>`;
-            return;
-        }
+        } else {
+            html += '<div style="display: flex; flex-direction: column; gap: 10px;">';
+            riwayatTrx.slice().reverse().forEach(trx => {
+                const isKeluar = trx.tipe.toLowerCase().includes('out') || trx.tipe.toLowerCase().includes('kurang') || trx.tipe.toLowerCase().includes('keluar');
+                const color = isKeluar ? '#ef4444' : '#10b981';
 
-        let html = '<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">';
-        riwayatTrx.slice().reverse().forEach(trx => {
-            const isKeluar = trx.tipe.toLowerCase().includes('out') || trx.tipe.toLowerCase().includes('kurang') || trx.tipe.toLowerCase().includes('keluar');
-            const color = isKeluar ? '#ef4444' : '#10b981';
-
-            html += `
-                <div style="background: #1e293b; padding: 14px 18px; border-radius: 8px; color: white; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-weight: 600;">
-                            <span style="color: ${color}; font-weight: bold;">[${trx.tipe}]</span> 
-                            ${trx.namaBarang} (${trx.jumlah} ${trx.satuan || ''})
+                html += `
+                    <div style="background: #1e293b; padding: 14px 18px; border-radius: 8px; color: white; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-weight: 600;">
+                                <span style="color: ${color}; font-weight: bold;">[${trx.tipe}]</span> 
+                                ${trx.namaBarang} (${trx.jumlah} ${trx.satuan || ''})
+                            </div>
+                            <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Deskripsi: <b>${trx.catatan || '-'}</b></div>
                         </div>
-                        <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Deskripsi: <b>${trx.catatan || '-'}</b></div>
+                        <div style="font-size: 12px; color: #64748b; text-align: right;">${trx.tanggal}</div>
                     </div>
-                    <div style="font-size: 12px; color: #64748b; text-align: right;">${trx.tanggal}</div>
-                </div>
-            `;
-        });
-        html += '</div>';
+                `;
+            });
+            html += '</div>';
+        }
         main.innerHTML = html;
     }
 }
 
-// --- 5. AKSI UBAH STOK CEPAT (+ / -) ---
+// --- 5. BUKA MODAL EDIT STOK ---
+function bukaModalEdit(id) {
+    const barang = listBarang.find(b => b.id === id);
+    if (!barang) return;
+
+    selectedBarangEditId = id;
+    const dEdit = document.getElementById('dEdit');
+    const fEdit = document.getElementById('fEdit');
+    const pEditNama = document.getElementById('pEditNama');
+    const boxAksiVendor = document.getElementById('boxAksiVendor');
+
+    if (pEditNama) pEditNama.textContent = `Barang: ${barang.nama} (Stok: ${barang.stok} ${barang.satuan})`;
+    if (fEdit) fEdit.reset();
+    if (boxAksiVendor) boxAksiVendor.style.display = 'none';
+
+    if (dEdit) dEdit.showModal();
+}
+
+// --- 6. AKSI UBAH STOK CEPAT (+ / -) ---
 function ubahStokQuick(id, delta) {
     const barang = listBarang.find(b => b.id === id);
     if (!barang) return;
@@ -401,7 +452,7 @@ function ubahStokQuick(id, delta) {
     updateStatistik();
 }
 
-// --- 6. HAPUS BARANG ---
+// --- 7. HAPUS BARANG ---
 function hapusBarang(id) {
     if (!confirm('Yakin ingin menghapus barang ini?')) return;
     listBarang = listBarang.filter(b => b.id !== id);
@@ -410,7 +461,7 @@ function hapusBarang(id) {
     updateStatistik();
 }
 
-// --- 7. UPDATE STATISTIK DASHBOARD ---
+// --- 8. UPDATE STATISTIK DASHBOARD ATAS ---
 function updateStatistik() {
     const sTotal = document.getElementById('sTotal');
     const sLow = document.getElementById('sLow');
