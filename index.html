@@ -155,6 +155,17 @@
   <div class="foot"><button type="button" class="cancel">Batal</button><button class="danger" id="bDel">Hapus</button></div>
 </dialog>
 
+<!-- DIALOG DAFTAR STOK MENIPIS / HABIS (INTERAKTIF) -->
+<dialog id="dAlerts" style="background: #0f172a; color: white; border: 1px solid #334155; border-radius: 12px; padding: 20px; width: 90%; max-width: 500px;">
+  <h2 id="tAlertsTitle" style="color: #38bdf8; font-size: 18px; margin-bottom: 15px;">Daftar Barang</h2>
+  <div id="contentAlertsList" style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+    <!-- Daftar barang per kategori akan dirender di sini secara dinamis -->
+  </div>
+  <div class="foot" style="display: flex; justify-content: flex-end;">
+    <button type="button" class="cancel" onclick="document.getElementById('dAlerts').close()" style="background: #334155; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Tutup</button>
+  </div>
+</dialog>
+
 <div id="toast"></div>
 
 <!-- INISIALISASI FIREBASE CLOUD FIRESTORE -->
@@ -186,7 +197,6 @@
   const analytics = getAnalytics(app);
   const db = getFirestore(app);
 
-  // Daftarkan ke objek window agar bisa diakses oleh file app.js utama Anda
   window.db = db;
   window.collection = collection;
   window.addDoc = addDoc;
