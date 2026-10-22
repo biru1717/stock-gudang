@@ -4,7 +4,7 @@ let riwayatTrx = JSON.parse(localStorage.getItem('riwayat_trx')) || [];
 let activeTab = 'stok';
 let tipeTrxModal = 'masuk';
 
-// Normalisasi data lama agar tidak ada yang NaN / undefined
+// Normalisasi data lama
 listBarang = listBarang.map(item => ({
     id: item.id || Date.now() + Math.random(),
     nama: item.nama || 'Tanpa Nama',
@@ -76,6 +76,7 @@ function initApp() {
                 namaBarang: nama,
                 jumlah: stok,
                 satuan: satuan,
+                catatan: 'Barang baru ditambahkan',
                 tanggal: new Date().toLocaleString('id-ID')
             });
 
@@ -86,7 +87,7 @@ function initApp() {
         });
     }
 
-    // Tombol Catat Transaksi
+    // Tombol Catat Transaksi Modal Utama
     const btnTrx = document.getElementById('btnTrx');
     const dTrx = document.getElementById('dTrx');
     const fTrx = document.getElementById('fTrx');
@@ -153,7 +154,7 @@ function initApp() {
             e.preventDefault();
             const barangId = parseInt(selectBarang?.value);
             const qty = parseInt(document.getElementById('tQty')?.value) || 0;
-            const cat = document.getElementById('tCat')?.value || '-';
+            const cat = document.getElementById('tCat')?.value || 'Transaksi manual';
 
             const barang = listBarang.find(b => b.id === barangId);
             if (!barang) {
@@ -268,9 +269,9 @@ function tampilkanData(keyword = '') {
                 <div style="background: #1e293b; padding: 14px 18px; border-radius: 8px; color: white; display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <div style="font-weight: 600;"><span style="color: ${color}; font-weight: bold;">[${trx.tipe.toUpperCase()}]</span> ${trx.namaBarang} (${trx.jumlah} ${trx.satuan || ''})</div>
-                        ${trx.catatan ? `<div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Catatan: ${trx.catatan}</div>` : ''}
+                        <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Alasan/Catatan: <b>${trx.catatan || '-'}</b></div>
                     </div>
-                    <div style="font-size: 12px; color: #64748b;">${trx.tanggal}</div>
+                    <div style="font-size: 12px; color: #64748b; text-align: right;">${trx.tanggal}</div>
                 </div>
             `;
         });
@@ -279,10 +280,17 @@ function tampilkanData(keyword = '') {
     }
 }
 
-// --- 4. AKSI UBAH STOK CEPAT (+ / -) ---
+// --- 4. AKSI UBAH STOK CEPAT (+ / -) DENGAN REASON ---
 function ubahStokQuick(id, delta) {
     const barang = listBarang.find(b => b.id === id);
     if (!barang) return;
+
+    // Munculkan kotak isian alasan (reason) saat tombol + atau - dipencet
+    const aksiStr = delta > 0 ? 'menambahkan' : 'mengurangi';
+    const reason = prompt(`Masukkan alasan/keterangan ${aksiStr} stok "${barang.nama}":`, delta > 0 ? 'Restock dari supplier' : 'Barang keluar / dipakai');
+    
+    // Jika user menekan Cancel pada prompt, batalkan perubahan
+    if (reason === null) return; 
 
     if (barang.stok + delta < 0) {
         alert('Stok tidak boleh kurang dari 0!');
@@ -296,6 +304,7 @@ function ubahStokQuick(id, delta) {
         namaBarang: barang.nama,
         jumlah: Math.abs(delta),
         satuan: barang.satuan,
+        catatan: reason.trim() || '-',
         tanggal: new Date().toLocaleString('id-ID')
     });
 
