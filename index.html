@@ -133,7 +133,7 @@
     <p class="pv" id="pv"></p>
     <label for="tCat">Catatan (opsional)</label><input id="tCat" maxlength="80" placeholder="Contoh: pembelian dari supplier">
     <div class="foot"><button type="button" class="cancel">Batal</button><button class="primary" type="submit" id="bTrx">Simpan transaksi</button></div>
-  </form>
+   </form>
 </dialog>
 
 <!-- DIALOG HAPUS -->
@@ -144,6 +144,44 @@
 </dialog>
 
 <div id="toast"></div>
+
+<!-- INISIALISASI FIREBASE CLOUD FIRESTORE -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-analytics.js";
+  import { 
+    getFirestore, 
+    collection, 
+    addDoc, 
+    getDocs, 
+    updateDoc,
+    deleteDoc, 
+    doc 
+  } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAf_k_MY54xL3HUNNcfu9PxGOJ7qiEOjJs",
+    authDomain: "stock-barang-9577f.firebaseapp.com",
+    projectId: "stock-barang-9577f",
+    storageBucket: "stock-barang-9577f.firebasestorage.app",
+    messagingSenderId: "640561152265",
+    appId: "1:640561152265:web:362541cc5acb355c62d3d8",
+    measurementId: "G-SCVG0J5635"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+  const db = getFirestore(app);
+
+  // Daftarkan ke objek window agar bisa diakses oleh file app.js utama Anda
+  window.db = db;
+  window.collection = collection;
+  window.addDoc = addDoc;
+  window.getDocs = getDocs;
+  window.updateDoc = updateDoc;
+  window.deleteDoc = deleteDoc;
+  window.doc = doc;
+</script>
 
 <script src="app.js"></script>
 </body>
