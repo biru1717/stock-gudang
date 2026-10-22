@@ -56,7 +56,7 @@ function initApp() {
         fItem.addEventListener('submit', (e) => {
             e.preventDefault();
             const nama = document.getElementById('iNama')?.value || '';
-            const kategori = document.getElementById('iKategori')?.value || 'Umum';
+            const kategori = document.getElementById('iKategori')?.value || 'SYRUP';
             const desc = document.getElementById('iDesc')?.value || '-';
             const stok = parseInt(document.getElementById('iStok')?.value) || 0;
             const satuan = document.getElementById('iSatuan')?.value || 'pcs';
@@ -79,6 +79,7 @@ function initApp() {
             riwayatTrx.push({
                 tipe: 'TAMBAH BARANG BARU',
                 namaBarang: nama,
+                kategori: kategori,
                 jumlah: stok,
                 satuan: satuan,
                 catatan: `Kategori: ${kategori} (${desc})`,
@@ -148,6 +149,7 @@ function initApp() {
             riwayatTrx.push({
                 tipe: labelTipe,
                 namaBarang: barang.nama,
+                kategori: barang.kategori || 'SYRUP',
                 jumlah: qty,
                 satuan: barang.satuan,
                 catatan: desc,
@@ -178,7 +180,7 @@ function initApp() {
                     listBarang.forEach(b => {
                         const opt = document.createElement('option');
                         opt.value = b.id;
-                        opt.textContent = `${b.nama} (Stok: ${b.stok} ${b.satuan})`;
+                        opt.textContent = `${b.nama} (${b.kategori}) - Stok: ${b.stok} ${b.satuan}`;
                         selectBarang.appendChild(opt);
                     });
                 }
@@ -247,6 +249,7 @@ function initApp() {
             riwayatTrx.push({
                 tipe: `Barang ${tipeTrxModal}`,
                 namaBarang: barang.nama,
+                kategori: barang.kategori || 'SYRUP',
                 jumlah: qty,
                 satuan: barang.satuan,
                 catatan: cat,
@@ -286,9 +289,14 @@ function renderFilterKategori() {
     const filtersContainer = document.getElementById('filters');
     if (!filtersContainer) return;
 
-    // Ambil daftar kategori unik dari data barang + opsi "Semua"
+    // Jika sedang di tab Riwayat, sembunyikan filter kategori di atas agar bersih
+    if (activeTab === 'riwayat') {
+        filtersContainer.innerHTML = '';
+        return;
+    }
+
     let kategoriSet = new Set(['Semua']);
-    listBarang.forEach(item => kategoriSet.add(item.kategori || 'Umum'));
+    listBarang.forEach(item => kategoriSet.add(item.kategori || 'SYRUP'));
 
     let html = '<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px;">';
     kategoriSet.forEach(kat => {
@@ -338,7 +346,7 @@ function tampilkanData(keyword = '') {
                     <div>
                         <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
                             <strong style="font-size: 16px; color: #f8fafc;">${item.nama}</strong>
-                            <span style="background: #334155; color: #38bdf8; font-size: 11px; padding: 2px 8px; border-radius: 12px;">${item.kategori || 'Umum'}</span>
+                            <span style="background: #334155; color: #38bdf8; font-size: 11px; padding: 2px 8px; border-radius: 12px;">${item.kategori || 'SYRUP'}</span>
                         </div>
                         ${item.deskripsi && item.deskripsi !== '-' ? `<div style="font-size: 13px; color: #94a3b8; margin-top: 2px;">Ket: ${item.deskripsi}</div>` : ''}
                         <div style="font-size: 13px; color: #cbd5e1; margin-top: 4px;">
@@ -359,7 +367,6 @@ function tampilkanData(keyword = '') {
         main.innerHTML = html;
 
     } else if (activeTab === 'riwayat') {
-        // Dashboard Ringkasan / Grafik Statistik Sederhana di Tab Riwayat
         let totalMasuk = riwayatTrx.filter(t => !t.tipe.toLowerCase().includes('out') && !t.tipe.toLowerCase().includes('kurang')).length;
         let totalKeluar = riwayatTrx.filter(t => t.tipe.toLowerCase().includes('out') || t.tipe.toLowerCase().includes('kurang') || t.tipe.toLowerCase().includes('keluar')).length;
 
@@ -368,7 +375,7 @@ function tampilkanData(keyword = '') {
                 <h3 style="margin-bottom: 10px; font-size: 16px; color: #38bdf8;">📊 Dashboard Ringkasan Aktivitas</h3>
                 <div style="display: flex; gap: 20px; font-size: 14px;">
                     <div>Total Transaksi Masuk: <b style="color: #10b981;">${totalMasuk}</b></div>
-                    <div>Total Transaksi Keluar/Keluar Gudang: <b style="color: #ef4444;">${totalKeluar}</b></div>
+                    <div>Total Transaksi Keluar: <b style="color: #ef4444;">${totalKeluar}</b></div>
                 </div>
             </div>
         `;
@@ -379,25 +386,43 @@ function tampilkanData(keyword = '') {
                     <p>Belum ada riwayat transaksi.</p>
                 </div>`;
         } else {
-            html += '<div style="display: flex; flex-direction: column; gap: 10px;">';
+            // Kelompokkan riwayat berdasarkan kategori
+            let groupedTrx = {};
             riwayatTrx.slice().reverse().forEach(trx => {
-                const isKeluar = trx.tipe.toLowerCase().includes('out') || trx.tipe.toLowerCase().includes('kurang') || trx.tipe.toLowerCase().includes('keluar');
-                const color = isKeluar ? '#ef4444' : '#10b981';
-
-                html += `
-                    <div style="background: #1e293b; padding: 14px 18px; border-radius: 8px; color: white; display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div style="font-weight: 600;">
-                                <span style="color: ${color}; font-weight: bold;">[${trx.tipe}]</span> 
-                                ${trx.namaBarang} (${trx.jumlah} ${trx.satuan || ''})
-                            </div>
-                            <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Deskripsi: <b>${trx.catatan || '-'}</b></div>
-                        </div>
-                        <div style="font-size: 12px; color: #64748b; text-align: right;">${trx.tanggal}</div>
-                    </div>
-                `;
+                let kat = trx.kategori || 'SYRUP';
+                if (!groupedTrx[kat]) groupedTrx[kat] = [];
+                groupedTrx[kat].push(trx);
             });
-            html += '</div>';
+
+            for (let [kategori, listTrx] of Object.entries(groupedTrx)) {
+                html += `
+                    <div style="margin-bottom: 25px;">
+                        <div style="background: #0f172a; color: #38bdf8; padding: 8px 14px; border-radius: 6px; font-weight: bold; font-size: 14px; margin-bottom: 10px; border-left: 4px solid #38bdf8;">
+                            📁 KATEGORI: ${kategori}
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                `;
+
+                listTrx.forEach(trx => {
+                    const isKeluar = trx.tipe.toLowerCase().includes('out') || trx.tipe.toLowerCase().includes('kurang') || trx.tipe.toLowerCase().includes('keluar');
+                    const color = isKeluar ? '#ef4444' : '#10b981';
+
+                    html += `
+                        <div style="background: #1e293b; padding: 14px 18px; border-radius: 8px; color: white; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-weight: 600;">
+                                    <span style="color: ${color}; font-weight: bold;">[${trx.tipe}]</span> 
+                                    ${trx.namaBarang} (${trx.jumlah} ${trx.satuan || ''})
+                                </div>
+                                <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Deskripsi: <b>${trx.catatan || '-'}</b></div>
+                            </div>
+                            <div style="font-size: 12px; color: #64748b; text-align: right;">${trx.tanggal}</div>
+                        </div>
+                    `;
+                });
+
+                html += `</div></div>`;
+            }
         }
         main.innerHTML = html;
     }
@@ -414,7 +439,7 @@ function bukaModalEdit(id) {
     const pEditNama = document.getElementById('pEditNama');
     const boxAksiVendor = document.getElementById('boxAksiVendor');
 
-    if (pEditNama) pEditNama.textContent = `Barang: ${barang.nama} (Stok: ${barang.stok} ${barang.satuan})`;
+    if (pEditNama) pEditNama.textContent = `Barang: ${barang.nama} (${barang.kategori}) - Stok: ${barang.stok} ${barang.satuan}`;
     if (fEdit) fEdit.reset();
     if (boxAksiVendor) boxAksiVendor.style.display = 'none';
 
@@ -441,6 +466,7 @@ function ubahStokQuick(id, delta) {
     riwayatTrx.push({
         tipe: delta > 0 ? 'Tambah Stok' : 'Kurang Stok',
         namaBarang: barang.nama,
+        kategori: barang.kategori || 'SYRUP',
         jumlah: Math.abs(delta),
         satuan: barang.satuan,
         catatan: reason.trim() || '-',
