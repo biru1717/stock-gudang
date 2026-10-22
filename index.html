@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stok Barang</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <span class="logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></span>
+      <div><h1>Stok Barang</h1><p class="sub">Catat barang masuk dan keluar dengan mudah</p></div>
+    </div>
+    <div class="hact"><button id="btnAdd">Tambah barang</button><button class="primary" id="btnTrx">Catat transaksi</button></div>
+  </header>
+
+  <section class="stats" aria-label="Ringkasan">
+    <div class="stat"><span>Jenis barang</span><b id="sTotal">0</b></div>
+    <div class="stat w"><span>Stok menipis</span><b id="sLow">0</b></div>
+    <div class="stat d"><span>Stok habis</span><b id="sOut">0</b></div>
+  </section>
+
+  <div id="alerts" role="status"></div>
+
+  <div class="tools">
+    <div class="seg" id="tabs" role="tablist"><button class="on" data-tab="stok" role="tab">Stok</button><button data-tab="riwayat" role="tab">Riwayat</button></div>
+    <input class="search" type="search" id="q" placeholder="Cari nama barang" aria-label="Cari barang">
+  </div>
+  <div class="filters"><div class="seg" id="filters"></div></div>
+
+  <main id="main"></main>
+</div>
+
+<dialog id="dItem">
+  <form method="dialog" id="fItem">
+    <h2 id="tItemT">Tambah barang</h2>
+    <label for="iNama">Nama barang</label><input id="iNama" required maxlength="60" placeholder="Contoh: Kertas A4">
+    <div class="row">
+      <div><label for="iStok">Stok awal</label><input id="iStok" type="number" min="0" value="0" required></div>
+      <div><label for="iSatuan">Satuan</label><input id="iSatuan" value="pcs" required maxlength="12"></div>
+    </div>
+    <label for="iMin">Batas minimum stok</label><input id="iMin" type="number" min="0" value="5" required>
+    <p class="hint">Peringatan muncul saat stok sama dengan atau di bawah angka ini.</p>
+    <div class="foot"><button type="button" class="cancel">Batal</button><button class="primary" type="submit">Simpan</button></div>
+  </form>
+</dialog>
+
+<dialog id="dTrx">
+  <form method="dialog" id="fTrx">
+    <h2>Catat transaksi</h2>
+    <div class="seg tt" id="segT"><button type="button" data-t="masuk" class="on">Barang masuk</button><button type="button" data-t="keluar">Barang keluar</button></div>
+    <label for="tItem">Barang</label><select id="tItem"></select>
+    <label for="tQty">Jumlah</label>
+    <div class="step"><button type="button" id="mn" aria-label="Kurangi">−</button><input id="tQty" type="number" min="1" value="1" required><button type="button" id="pl" aria-label="Tambah">+</button></div>
+    <p class="pv" id="pv"></p>
+    <label for="tCat">Catatan (opsional)</label><input id="tCat" maxlength="80" placeholder="Contoh: pembelian dari supplier">
+    <div class="foot"><button type="button" class="cancel">Batal</button><button class="primary" type="submit" id="bTrx">Simpan transaksi</button></div>
+  </form>
+</dialog>
+
+<dialog id="dDel">
+  <h2>Hapus barang?</h2>
+  <p class="hint" id="pDel" style="font-size:14px"></p>
+  <div class="foot"><button type="button" class="cancel">Batal</button><button class="danger" id="bDel">Hapus</button></div>
+</dialog>
+<div id="toast"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
