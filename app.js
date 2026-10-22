@@ -10,7 +10,7 @@ let selectedBarangEditId = null;
 listBarang = listBarang.map(item => ({
     id: item.id || Date.now() + Math.random(),
     nama: item.nama || 'Tanpa Nama',
-    kategori: item.kategori || 'Umum',
+    kategori: item.kategori || 'SYRUP',
     deskripsi: item.deskripsi || item.jenis || '-',
     stok: Number(item.stok !== undefined ? item.stok : (item.jumlah !== undefined ? item.jumlah : 0)) || 0,
     satuan: item.satuan || 'pcs',
@@ -271,6 +271,7 @@ function initApp() {
             tabButtons.forEach(b => b.classList.remove('on'));
             btn.classList.add('on');
             activeTab = btn.getAttribute('data-tab') || 'stok';
+            activeKategoriFilter = 'Semua'; // Reset filter saat pindah tab
             tampilkanData();
         });
     });
@@ -284,19 +285,17 @@ function initApp() {
     }
 }
 
-// --- 3. RENDER TOMBOL FILTER KATEGORI OTOMATIS ---
+// --- 3. RENDER TOMBOL FILTER KATEGORI (BERFUNGSI DI TAB STOK & RIWAYAT) ---
 function renderFilterKategori() {
     const filtersContainer = document.getElementById('filters');
     if (!filtersContainer) return;
 
-    // Jika sedang di tab Riwayat, sembunyikan filter kategori di atas agar bersih
-    if (activeTab === 'riwayat') {
-        filtersContainer.innerHTML = '';
-        return;
-    }
-
+    // Ambil semua kategori unik dari listBarang + riwayatTrx agar tombol kategori selalu muncul
     let kategoriSet = new Set(['Semua']);
     listBarang.forEach(item => kategoriSet.add(item.kategori || 'SYRUP'));
+    riwayatTrx.forEach(trx => {
+        if (trx.kategori) kategoriSet.add(trx.kategori);
+    });
 
     let html = '<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px;">';
     kategoriSet.forEach(kat => {
@@ -380,49 +379,39 @@ function tampilkanData(keyword = '') {
             </div>
         `;
 
-        if (riwayatTrx.length === 0) {
+        // Filter riwayat berdasarkan kategori yang dipilih di tombol pil
+        let filteredRiwayat = riwayatTrx.filter(trx => {
+            let matchKeyword = trx.namaBarang.toLowerCase().includes(keyword.toLowerCase());
+            let matchKategori = (activeKategoriFilter === 'Semua' || (trx.kategori || 'SYRUP') === activeKategoriFilter);
+            return matchKeyword && matchKategori;
+        });
+
+        if (filteredRiwayat.length === 0) {
             html += `
                 <div style="text-align: center; color: #94a3b8; padding: 40px; background: #1e293b; border-radius: 12px;">
-                    <p>Belum ada riwayat transaksi.</p>
+                    <p>Belum ada riwayat transaksi pada kategori ini.</p>
                 </div>`;
         } else {
-            // Kelompokkan riwayat berdasarkan kategori
-            let groupedTrx = {};
-            riwayatTrx.slice().reverse().forEach(trx => {
-                let kat = trx.kategori || 'SYRUP';
-                if (!groupedTrx[kat]) groupedTrx[kat] = [];
-                groupedTrx[kat].push(trx);
-            });
+            html += '<div style="display: flex; flex-direction: column; gap: 10px;">';
+            filteredRiwayat.slice().reverse().forEach(trx => {
+                const isKeluar = trx.tipe.toLowerCase().includes('out') || trx.tipe.toLowerCase().includes('kurang') || trx.tipe.toLowerCase().includes('keluar');
+                const color = isKeluar ? '#ef4444' : '#10b981';
 
-            for (let [kategori, listTrx] of Object.entries(groupedTrx)) {
                 html += `
-                    <div style="margin-bottom: 25px;">
-                        <div style="background: #0f172a; color: #38bdf8; padding: 8px 14px; border-radius: 6px; font-weight: bold; font-size: 14px; margin-bottom: 10px; border-left: 4px solid #38bdf8;">
-                            📁 KATEGORI: ${kategori}
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 8px;">
-                `;
-
-                listTrx.forEach(trx => {
-                    const isKeluar = trx.tipe.toLowerCase().includes('out') || trx.tipe.toLowerCase().includes('kurang') || trx.tipe.toLowerCase().includes('keluar');
-                    const color = isKeluar ? '#ef4444' : '#10b981';
-
-                    html += `
-                        <div style="background: #1e293b; padding: 14px 18px; border-radius: 8px; color: white; display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <div style="font-weight: 600;">
-                                    <span style="color: ${color}; font-weight: bold;">[${trx.tipe}]</span> 
-                                    ${trx.namaBarang} (${trx.jumlah} ${trx.satuan || ''})
-                                </div>
-                                <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Deskripsi: <b>${trx.catatan || '-'}</b></div>
+                    <div style="background: #1e293b; padding: 14px 18px; border-radius: 8px; color: white; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-weight: 600;">
+                                <span style="color: ${color}; font-weight: bold;">[${trx.tipe}]</span> 
+                                ${trx.namaBarang} (${trx.jumlah} ${trx.satuan || ''}) 
+                                <span style="background: #334155; color: #38bdf8; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 6px;">${trx.kategori || 'SYRUP'}</span>
                             </div>
-                            <div style="font-size: 12px; color: #64748b; text-align: right;">${trx.tanggal}</div>
+                            <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Deskripsi: <b>${trx.catatan || '-'}</b></div>
                         </div>
-                    `;
-                });
-
-                html += `</div></div>`;
-            }
+                        <div style="font-size: 12px; color: #64748b; text-align: right;">${trx.tanggal}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
         }
         main.innerHTML = html;
     }
@@ -479,6 +468,10 @@ function ubahStokQuick(id, delta) {
 }
 
 // --- 7. HAPUS BARANG ---
+function hapusBadang(id) {
+    // Fungsi cadangan
+}
+
 function hapusBarang(id) {
     if (!confirm('Yakin ingin menghapus barang ini?')) return;
     listBarang = listBarang.filter(b => b.id !== id);
