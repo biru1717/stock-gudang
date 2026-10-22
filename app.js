@@ -54,7 +54,6 @@ function tampilkanData() {
     let container = document.getElementById('area-tabel-barang');
     
     if (!container) {
-        // Jika area khusus belum ada, kita buatkan secara otomatis di bawah kolom pencarian
         const searchBar = document.querySelector('input[type="text"], input[placeholder*="Cari"]');
         if (searchBar && searchBar.parentElement) {
             container = document.createElement('div');
@@ -74,7 +73,7 @@ function tampilkanData() {
         return;
     }
 
-    // Render daftar barang dalam bentuk kartu/tabel yang rapi
+    // Render daftar barang
     let html = '<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">';
     listBarang.forEach((item) => {
         html += `
@@ -99,20 +98,30 @@ function hapusBarang(id) {
     tampilkanData();
 }
 
-// --- 6. UPDATE ANGKA STATISTIK DI ATAS ---
+// --- 6. UPDATE ANGKA STATISTIK DI DASHBOARD ---
 function updateStatistik() {
-    const elJenis = document.querySelector('.jenis-barang-val') || document.querySelectorAll('.text-2xl, h2')[0];
-    
-    // Hitung statistik
-    let totalJenis = listBarang.length;
-    let stokMenipis = listBarang.filter(item => item.jumlah > 0 && item.jumlah <= 5).length;
-    let stokHabis = listBarang.filter(item => item.jumlah === 0).length;
+    const totalJenis = listBarang.length;
+    const stokMenipis = listBarang.filter(item => item.jumlah > 0 && item.jumlah <= 5).length;
+    const stokHabis = listBarang.filter(item => item.jumlah === 0).length;
 
-    // Masukkan angka ke kotak ringkasan atas jika elemennya ketemu
-    const kotakAngka = document.querySelectorAll('.text-2xl, .font-bold');
-    // Memperbarui kotak statistik di dashboard
-    const cardValues = document.querySelectorAll('div > span, div > h2, .text-2xl');
-    
-    // Update indikator angka secara otomatis
-    document.querySelectorAll('.stat-jenis').forEach(el => el.textContent = totalJenis);
+    const semuaElement = document.querySelectorAll('div, section, p, span');
+
+    semuaElement.forEach(el => {
+        const teks = el.innerText ? el.innerText.trim().toLowerCase() : '';
+
+        if (teks.includes('jenis barang')) {
+            const angkaNode = Array.from(el.querySelectorAll('*')).find(child => !isNaN(child.innerText) && child.children.length === 0);
+            if (angkaNode) angkaNode.innerText = totalJenis;
+        }
+
+        if (teks.includes('stok menipis')) {
+            const angkaNode = Array.from(el.querySelectorAll('*')).find(child => !isNaN(child.innerText) && child.children.length === 0);
+            if (angkaNode) angkaNode.innerText = stokMenipis;
+        }
+
+        if (teks.includes('stok habis')) {
+            const angkaNode = Array.from(el.querySelectorAll('*')).find(child => !isNaN(child.innerText) && child.children.length === 0);
+            if (angkaNode) angkaNode.innerText = stokHabis;
+        }
+    });
 }
