@@ -1,7 +1,7 @@
 // --- 1. INISIALISASI VARIABEL GLOBAL & STATE ---
 let activeTab = 'stok';
 let activeKategoriFilter = 'Semua';
-let activeSubFoodFilter = 'Semua'; // State khusus sub-kategori food
+let activeSubFoodFilter = 'Semua';
 let tipeTrxModal = 'masuk';
 let selectedBarangEditId = null;
 
@@ -358,7 +358,6 @@ async function renderFilterKategori() {
         stokSnap.forEach(docSnap => {
             const item = docSnap.data();
             if (item.kategori) {
-                // Ambil kategori utamanya saja (misal: jika "FOOD - SANDWICH", ambil "FOOD")
                 let mainKat = item.kategori.split(' - ')[0];
                 baseCategories.add(mainKat);
             }
@@ -379,7 +378,6 @@ async function renderFilterKategori() {
             let isActive = activeKategoriFilter === kat;
             let bgStyle = isActive ? 'background: #38bdf8; color: #0f172a; font-weight: bold;' : 'background: #1e293b; color: #94a3b8;';
             
-            // Jika kategori FOOD dan sedang aktif, tambahkan ikon tanda panah kebawah/samping
             let labelKat = kat;
             if (kat === 'FOOD') {
                 labelKat = kat + (isActive ? ' ▾' : ' ▸');
@@ -389,7 +387,6 @@ async function renderFilterKategori() {
         });
         html += '</div>';
 
-        // JIKA KATEGORI "FOOD" DIPILIH, MUNCULKAN BARIS KEDUA KHUSUS SUB-KATEGORI FOOD
         if (activeKategoriFilter === 'FOOD') {
             let subFoodList = ['Semua', 'SANDWICH', 'POUND CAKE', 'PASTRY', 'ROLL CAKE'];
             html += '<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; padding-left: 10px; border-left: 2px solid #38bdf8;">';
@@ -411,7 +408,7 @@ async function renderFilterKategori() {
 function setFilterKategori(kat) {
     activeKategoriFilter = kat;
     if (kat !== 'FOOD') {
-        activeSubFoodFilter = 'Semua'; // Reset sub-food jika pindah kategori lain
+        activeSubFoodFilter = 'Semua';
     }
     const searchInput = document.getElementById('q');
     tampilkanData(searchInput ? searchInput.value : '');
@@ -676,7 +673,7 @@ async function hapusBarang(id) {
     }
 }
 
-// --- 8. UPDATE STATISTIK DASHBOARD ATAS ---
+// --- 8. UPDATE STATISTIK DASHBOARD ATAS & INTERAKTIF KLIK ---
 async function updateStatistik() {
     const sTotal = document.getElementById('sTotal');
     const sLow = document.getElementById('sLow');
@@ -690,13 +687,78 @@ async function updateStatistik() {
         });
 
         const totalJenis = listBarang.length;
-        const stokMenipis = listBarang.filter(b => Number(b.stok) > 0 && Number(b.stok) <= Number(b.min)).length;
-        const stokHabis = listBarang.filter(b => Number(b.stok) === 0).length;
+        const listStokMenipis = listBarang.filter(b => Number(b.stok) > 0 && Number(b.stok) <= Number(b.min));
+        const listStokHabis = listBarang.filter(b => Number(b.stok) === 0);
 
         if (sTotal) sTotal.textContent = totalJenis;
-        if (sLow) sLow.textContent = stokMenipis;
-        if (sOut) sOut.textContent = stokHabis;
+        if (sLow) sLow.textContent = listStokMenipis.length;
+        if (sOut) sOut.textContent = listStokHabis.length;
+
+        // --- TAMBAHKAN INTERAKSI KLIK PADA KARTU STATISTIK ---
+        const statLowCard = sLow.closest('.stat');
+        const statOutCard = sOut.closest('.stat');
+
+        if (statLowCard) {
+            statLowCard.style.cursor = 'pointer';
+            statLowCard.onclick = () => bukaModalAlerts('Stok Menipis (<= Batas Minimum)', listStokMenipis);
+        }
+
+        if (statOutCard) {
+            statOutCard.style.cursor = 'pointer';
+            statOutCard.onclick = () => bukaModalAlerts('Stok Habis (Jumlah 0)', listStokHabis);
+        }
+
     } catch (error) {
         console.error("Gagal memperbarui statistik:", error);
     }
+}
+
+// --- 9. FUNGSI MENAMPILKAN POP-UP DAFTAR BARANG DIPISAHKAN PER KATEGORI ---
+function bukaModalAlerts(judul, items) {
+    const dAlerts = document.getElementById('dAlerts');
+    const tAlertsTitle = document.getElementById('tAlertsTitle');
+    const contentAlertsList = document.getElementById('contentAlertsList');
+
+    if (!dAlerts || !tAlertsTitle || !contentAlertsList) return;
+
+    tAlertsTitle.textContent = judul;
+
+    if (items.length === 0) {
+        contentAlertsList.innerHTML = '<p style="text-align: center; color: #94a3b8; padding: 20px;">Tidak ada barang dalam daftar ini.</p>';
+        dAlerts.showModal();
+        return;
+    }
+
+    // Kelompokkan barang berdasarkan kategori
+    let grouped = {};
+    items.forEach(item => {
+        let kat = item.kategori || 'FOOD';
+        if (!grouped[kat]) {
+            grouped[kat] = [];
+        }
+        grouped[kat].push(item);
+    });
+
+    let html = '';
+    for (let kat in grouped) {
+        html += `
+            <div style="background: #1e293b; padding: 12px; border-radius: 8px; border-left: 3px solid #38bdf8;">
+                <div style="font-weight: bold; color: #38bdf8; font-size: 13px; margin-bottom: 8px;">📂 ${kat}</div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+        `;
+
+        grouped[kat].forEach(b => {
+            html += `
+                <div style="display: flex; justify-content: space-between; font-size: 13px; background: #0f172a; padding: 6px 10px; border-radius: 6px;">
+                    <span>${b.nama}</span>
+                    <strong style="color: ${b.stok === 0 ? '#ef4444' : '#f59e0b'};">${b.stok} ${b.satuan}</strong>
+                </div>
+            `;
+        });
+
+        html += `</div></div>`;
+    }
+
+    contentAlertsList.innerHTML = html;
+    dAlerts.showModal();
 }
