@@ -2,9 +2,10 @@ const express = require('express');
 const path = require('path');
 const app = express();
 
-// Membuka akses folder utama agar style.css terbaca
+// Menyalurkan file statis dari folder saat ini dengan benar
 app.use(express.static(__dirname));
 
+// Rute utama website
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
