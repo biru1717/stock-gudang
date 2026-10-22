@@ -420,83 +420,25 @@ function setSubFoodFilter(sub) {
     tampilkanData(searchInput ? searchInput.value : '');
 }
 
-// --- 4. MENAMPILKAN DATA KE <main id="main"> (DARI FIREBASE) ---
+// --- 4. MENAMPILKAN DATA KE <main id="main"> (REAL-TIME DENGAN onSNAPSHOT) ---
 async function tampilkanData(keyword = '') {
     await renderFilterKategori();
     const main = document.getElementById('main');
     if (!main) return;
 
     if (activeTab === 'stok') {
-        try {
-            const querySnapshot = await window.getDocs(window.collection(window.db, "stok_barang"));
+        // Gunakan onSnapshot agar data tersinkronisasi otomatis secara real-time
+        window.onSnapshot(window.collection(window.db, "stok_barang"), (querySnapshot) => {
             let listBarang = [];
             querySnapshot.forEach(docSnap => {
                 listBarang.push({ id: docSnap.id, ...docSnap.data() });
             });
 
-            let filtered = listBarang.filter(item => {
-                let matchKeyword = item.nama.toLowerCase().includes(keyword.toLowerCase());
-                
-                let katItem = item.kategori || 'FOOD';
-                let matchKategori = false;
-
-                if (activeKategoriFilter === 'Semua') {
-                    matchKategori = true;
-                } else if (activeKategoriFilter === 'FOOD') {
-                    if (katItem.startsWith('FOOD')) {
-                        if (activeSubFoodFilter === 'Semua') {
-                            matchKategori = true;
-                        } else {
-                            matchKategori = katItem === `FOOD - ${activeSubFoodFilter}`;
-                        }
-                    }
-                } else {
-                    matchKategori = katItem === activeKategoriFilter;
-                }
-
-                return matchKeyword && matchKategori;
-            });
-
-            if (filtered.length === 0) {
-                main.innerHTML = `
-                    <div style="text-align: center; color: #94a3b8; padding: 40px; background: #1e293b; border-radius: 12px; margin-top: 10px;">
-                        <p>Belum ada barang pada kategori ini.</p>
-                    </div>`;
-                return;
-            }
-
-            let html = '<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 5px;">';
-            filtered.forEach(item => {
-                let statusWarna = item.stok <= item.min ? '#f59e0b' : '#38bdf8';
-                if (item.stok === 0) statusWarna = '#ef4444';
-
-                html += `
-                    <div style="background: #1e293b; padding: 16px 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; color: white;">
-                        <div>
-                            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
-                                <strong style="font-size: 16px; color: #f8fafc;">${item.nama}</strong>
-                                <span style="background: #334155; color: #38bdf8; font-size: 11px; padding: 2px 8px; border-radius: 12px;">${item.kategori || 'FOOD'}</span>
-                            </div>
-                            ${item.deskripsi && item.deskripsi !== '-' ? `<div style="font-size: 13px; color: #94a3b8; margin-top: 2px;">Ket: ${item.deskripsi}</div>` : ''}
-                            <div style="font-size: 13px; color: #cbd5e1; margin-top: 4px;">
-                                Stok: <span style="color: ${statusWarna}; font-weight: bold;">${item.stok} ${item.satuan}</span> 
-                                <span style="color: #64748b; font-size: 12px;">(Min: ${item.min})</span>
-                            </div>
-                        </div>
-                        <div style="display: flex; gap: 6px; align-items: center;">
-                            <button onclick="bukaModalEdit('${item.id}')" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 500;">Edit</button>
-                            <button onclick="ubahStokQuick('${item.id}', -1)" title="Kurangi Stok" style="background: #334155; color: white; border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">-</button>
-                            <button onclick="ubahStokQuick('${item.id}', 1)" title="Tambah Stok" style="background: #334155; color: white; border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">+</button>
-                            <button onclick="hapusBarang('${item.id}')" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Hapus</button>
-                        </div>
-                    </div>
-                `;
-            });
-            html += '</div>';
-            main.innerHTML = html;
-        } catch (error) {
-            console.error("Gagal memuat data stok:", error);
-        }
+            updateStatistikRealtime(listBarang);
+            renderStokView(listBarang, keyword, main);
+        }, (error) => {
+            console.error("Gagal mendengarkan data stok:", error);
+        });
 
     } else if (activeTab === 'riwayat') {
         try {
@@ -575,6 +517,69 @@ async function tampilkanData(keyword = '') {
             console.error("Gagal memuat riwayat transaksi:", error);
         }
     }
+}
+
+// --- FUNGSI BANTUAN RENDER TAB STOK ---
+function renderStokView(listBarang, keyword, main) {
+    let filtered = listBarang.filter(item => {
+        let matchKeyword = item.nama.toLowerCase().includes(keyword.toLowerCase());
+        let katItem = item.kategori || 'FOOD';
+        let matchKategori = false;
+
+        if (activeKategoriFilter === 'Semua') {
+            matchKategori = true;
+        } else if (activeKategoriFilter === 'FOOD') {
+            if (katItem.startsWith('FOOD')) {
+                if (activeSubFoodFilter === 'Semua') {
+                    matchKategori = true;
+                } else {
+                    matchKategori = katItem === `FOOD - ${activeSubFoodFilter}`;
+                }
+            }
+        } else {
+            matchKategori = katItem === activeKategoriFilter;
+        }
+
+        return matchKeyword && matchKategori;
+    });
+
+    if (filtered.length === 0) {
+        main.innerHTML = `
+            <div style="text-align: center; color: #94a3b8; padding: 40px; background: #1e293b; border-radius: 12px; margin-top: 10px;">
+                <p>Belum ada barang pada kategori ini.</p>
+            </div>`;
+        return;
+    }
+
+    let html = '<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 5px;">';
+    filtered.forEach(item => {
+        let statusWarna = item.stok <= item.min ? '#f59e0b' : '#38bdf8';
+        if (item.stok === 0) statusWarna = '#ef4444';
+
+        html += `
+            <div style="background: #1e293b; padding: 16px 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; color: white;">
+                <div>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
+                        <strong style="font-size: 16px; color: #f8fafc;">${item.nama}</strong>
+                        <span style="background: #334155; color: #38bdf8; font-size: 11px; padding: 2px 8px; border-radius: 12px;">${item.kategori || 'FOOD'}</span>
+                    </div>
+                    ${item.deskripsi && item.deskripsi !== '-' ? `<div style="font-size: 13px; color: #94a3b8; margin-top: 2px;">Ket: ${item.deskripsi}</div>` : ''}
+                    <div style="font-size: 13px; color: #cbd5e1; margin-top: 4px;">
+                        Stok: <span style="color: ${statusWarna}; font-weight: bold;">${item.stok} ${item.satuan}</span> 
+                        <span style="color: #64748b; font-size: 12px;">(Min: ${item.min})</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                    <button onclick="bukaModalEdit('${item.id}')" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 500;">Edit</button>
+                    <button onclick="ubahStokQuick('${item.id}', -1)" title="Kurangi Stok" style="background: #334155; color: white; border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">-</button>
+                    <button onclick="ubahStokQuick('${item.id}', 1)" title="Tambah Stok" style="background: #334155; color: white; border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">+</button>
+                    <button onclick="hapusBarang('${item.id}')" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Hapus</button>
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    main.innerHTML = html;
 }
 
 // --- 5. BUKA MODAL EDIT STOK ---
@@ -675,40 +680,42 @@ async function hapusBarang(id) {
 
 // --- 8. UPDATE STATISTIK DASHBOARD ATAS & INTERAKTIF KLIK ---
 async function updateStatistik() {
-    const sTotal = document.getElementById('sTotal');
-    const sLow = document.getElementById('sLow');
-    const sOut = document.getElementById('sOut');
-
     try {
         const querySnapshot = await window.getDocs(window.collection(window.db, "stok_barang"));
         let listBarang = [];
         querySnapshot.forEach(docSnap => {
             listBarang.push(docSnap.data());
         });
-
-        const totalJenis = listBarang.length;
-        const listStokMenipis = listBarang.filter(b => Number(b.stok) > 0 && Number(b.stok) <= Number(b.min));
-        const listStokHabis = listBarang.filter(b => Number(b.stok) === 0);
-
-        if (sTotal) sTotal.textContent = totalJenis;
-        if (sLow) sLow.textContent = listStokMenipis.length;
-        if (sOut) sOut.textContent = listStokHabis.length;
-
-        const statLowCard = sLow.closest('.stat');
-        const statOutCard = sOut.closest('.stat');
-
-        if (statLowCard) {
-            statLowCard.style.cursor = 'pointer';
-            statLowCard.onclick = () => bukaModalAlerts('Stok Menipis (<= Batas Minimum)', listStokMenipis);
-        }
-
-        if (statOutCard) {
-            statOutCard.style.cursor = 'pointer';
-            statOutCard.onclick = () => bukaModalAlerts('Stok Habis (Jumlah 0)', listStokHabis);
-        }
-
+        updateStatistikRealtime(listBarang);
     } catch (error) {
         console.error("Gagal memperbarui statistik:", error);
+    }
+}
+
+function updateStatistikRealtime(listBarang) {
+    const sTotal = document.getElementById('sTotal');
+    const sLow = document.getElementById('sLow');
+    const sOut = document.getElementById('sOut');
+
+    const totalJenis = listBarang.length;
+    const listStokMenipis = listBarang.filter(b => Number(b.stok) > 0 && Number(b.stok) <= Number(b.min));
+    const listStokHabis = listBarang.filter(b => Number(b.stok) === 0);
+
+    if (sTotal) sTotal.textContent = totalJenis;
+    if (sLow) sLow.textContent = listStokMenipis.length;
+    if (sOut) sOut.textContent = listStokHabis.length;
+
+    const statLowCard = sLow.closest('.stat');
+    const statOutCard = sOut.closest('.stat');
+
+    if (statLowCard) {
+        statLowCard.style.cursor = 'pointer';
+        statLowCard.onclick = () => bukaModalAlerts('Stok Menipis (<= Batas Minimum)', listStokMenipis);
+    }
+
+    if (statOutCard) {
+        statOutCard.style.cursor = 'pointer';
+        statOutCard.onclick = () => bukaModalAlerts('Stok Habis (Jumlah 0)', listStokHabis);
     }
 }
 
