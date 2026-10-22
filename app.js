@@ -1,10 +1,11 @@
-// --- 1. INISIALISASI & NORMALISASI DATA LOCALSTORAGE ---
+// --- 1. INISIALISASI DATA LOCALSTORAGE ---
 let listBarang = JSON.parse(localStorage.getItem('stok_barang')) || [];
 let riwayatTrx = JSON.parse(localStorage.getItem('riwayat_trx')) || [];
 let activeTab = 'stok';
 let tipeTrxModal = 'masuk';
+let selectedBarangEditId = null;
 
-// Normalisasi data lama
+// Normalisasi data
 listBarang = listBarang.map(item => ({
     id: item.id || Date.now() + Math.random(),
     nama: item.nama || 'Tanpa Nama',
@@ -72,11 +73,11 @@ function initApp() {
             listBarang.push(barangBaru);
 
             riwayatTrx.push({
-                tipe: 'tambah barang baru',
+                tipe: 'TAMBAH BARANG BARU',
                 namaBarang: nama,
                 jumlah: stok,
                 satuan: satuan,
-                catatan: 'Barang baru ditambahkan',
+                catatan: `Barang baru dibuat (${desc})`,
                 tanggal: new Date().toLocaleString('id-ID')
             });
 
@@ -87,7 +88,76 @@ function initApp() {
         });
     }
 
-    // Tombol Catat Transaksi Modal Utama
+    // Modal Edit Stok & Opsi (Transfer In / Out / Vendor)
+    const dEdit = document.getElementById('dEdit');
+    const fEdit = document.getElementById('fEdit');
+    const eOpsi = document.getElementById('eOpsi');
+    const boxAksiVendor = document.getElementById('boxAksiVendor');
+
+    if (eOpsi && boxAksiVendor) {
+        eOpsi.addEventListener('change', () => {
+            boxAksiVendor.style.display = eOpsi.value === 'Vendor' ? 'block' : 'none';
+        });
+    }
+
+    if (dEdit) {
+        const btnBatalEdit = dEdit.querySelector('.cancel');
+        if (btnBatalEdit) {
+            btnBatalEdit.addEventListener('click', () => dEdit.close());
+        }
+    }
+
+    if (fEdit) {
+        fEdit.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const barang = listBarang.find(b => b.id === selectedBarangEditId);
+            if (!barang) return;
+
+            const opsi = document.getElementById('eOpsi').value;
+            const vendorAksi = document.getElementById('eVendorAksi').value;
+            const qty = parseInt(document.getElementById('eQty').value) || 0;
+            const desc = document.getElementById('eDesc').value || '-';
+
+            let isTambah = true;
+            let labelTipe = opsi;
+
+            if (opsi === 'Transfer In') {
+                isTambah = true;
+            } else if (opsi === 'Transfer Out') {
+                isTambah = false;
+            } else if (opsi === 'Vendor') {
+                isTambah = (vendorAksi === 'tambah');
+                labelTipe = `Vendor (${vendorAksi === 'tambah' ? 'In' : 'Out'})`;
+            }
+
+            if (!isTambah && barang.stok < qty) {
+                alert('Stok tidak mencukupi untuk pengurangan ini!');
+                return;
+            }
+
+            if (isTambah) {
+                barang.stok += qty;
+            } else {
+                barang.stok -= qty;
+            }
+
+            riwayatTrx.push({
+                tipe: labelTipe,
+                namaBarang: barang.nama,
+                jumlah: qty,
+                satuan: barang.satuan,
+                catatan: desc,
+                tanggal: new Date().toLocaleString('id-ID')
+            });
+
+            simpanData();
+            tampilkanData();
+            updateStatistik();
+            dEdit.close();
+        });
+    }
+
+    // Modal Catat Transaksi Header
     const btnTrx = document.getElementById('btnTrx');
     const dTrx = document.getElementById('dTrx');
     const fTrx = document.getElementById('fTrx');
@@ -96,7 +166,6 @@ function initApp() {
     if (btnTrx && dTrx) {
         btnTrx.addEventListener('click', (e) => {
             e.preventDefault();
-            
             if (selectBarang) {
                 selectBarang.innerHTML = '';
                 if (listBarang.length === 0) {
@@ -110,7 +179,6 @@ function initApp() {
                     });
                 }
             }
-
             if (fTrx) fTrx.reset();
             dTrx.showModal();
         });
@@ -164,7 +232,7 @@ function initApp() {
 
             if (tipeTrxModal === 'keluar') {
                 if (barang.stok < qty) {
-                    alert('Stok tidak mencukupi untuk transaksi keluar!');
+                    alert('Stok tidak mencukupi!');
                     return;
                 }
                 barang.stok -= qty;
@@ -173,7 +241,7 @@ function initApp() {
             }
 
             riwayatTrx.push({
-                tipe: `barang ${tipeTrxModal}`,
+                tipe: `Barang ${tipeTrxModal}`,
                 namaBarang: barang.nama,
                 jumlah: qty,
                 satuan: barang.satuan,
@@ -188,7 +256,7 @@ function initApp() {
         });
     }
 
-    // Tab Stok & Riwayat
+    // Tab Navigasi
     const tabButtons = document.querySelectorAll('#tabs button');
     tabButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -209,7 +277,25 @@ function initApp() {
     }
 }
 
-// --- 3. MENAMPILKAN DATA KE <main id="main"> ---
+// --- 3. BUKA DIALOG EDIT STOK BARANG ---
+function bukaModalEdit(id) {
+    const barang = listBarang.find(b => b.id === id);
+    if (!barang) return;
+
+    selectedBarangEditId = id;
+    const dEdit = document.getElementById('dEdit');
+    const fEdit = document.getElementById('fEdit');
+    const pEditNama = document.getElementById('pEditNama');
+    const boxAksiVendor = document.getElementById('boxAksiVendor');
+
+    if (pEditNama) pEditNama.textContent = `Barang: ${barang.nama} (Stok saat ini: ${barang.stok} ${barang.satuan})`;
+    if (fEdit) fEdit.reset();
+    if (boxAksiVendor) boxAksiVendor.style.display = 'none';
+
+    if (dEdit) dEdit.showModal();
+}
+
+// --- 4. MENAMPILKAN DATA KE <main id="main"> ---
 function tampilkanData(keyword = '') {
     const main = document.getElementById('main');
     if (!main) return;
@@ -240,10 +326,11 @@ function tampilkanData(keyword = '') {
                             <span style="color: #64748b; font-size: 12px;">(Min: ${item.min})</span>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 8px; align-items: center;">
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <button onclick="bukaModalEdit(${item.id})" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 500;">Edit</button>
                         <button onclick="ubahStokQuick(${item.id}, -1)" title="Kurangi Stok" style="background: #334155; color: white; border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">-</button>
                         <button onclick="ubahStokQuick(${item.id}, 1)" title="Tambah Stok" style="background: #334155; color: white; border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">+</button>
-                        <button onclick="hapusBarang(${item.id})" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; margin-left: 4px;">Hapus</button>
+                        <button onclick="hapusBarang(${item.id})" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Hapus</button>
                     </div>
                 </div>
             `;
@@ -262,14 +349,17 @@ function tampilkanData(keyword = '') {
 
         let html = '<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">';
         riwayatTrx.slice().reverse().forEach(trx => {
-            const isKeluar = trx.tipe.includes('keluar');
+            const isKeluar = trx.tipe.toLowerCase().includes('out') || trx.tipe.toLowerCase().includes('kurang') || trx.tipe.toLowerCase().includes('keluar');
             const color = isKeluar ? '#ef4444' : '#10b981';
 
             html += `
                 <div style="background: #1e293b; padding: 14px 18px; border-radius: 8px; color: white; display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <div style="font-weight: 600;"><span style="color: ${color}; font-weight: bold;">[${trx.tipe.toUpperCase()}]</span> ${trx.namaBarang} (${trx.jumlah} ${trx.satuan || ''})</div>
-                        <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Alasan/Catatan: <b>${trx.catatan || '-'}</b></div>
+                        <div style="font-weight: 600;">
+                            <span style="color: ${color}; font-weight: bold;">[${trx.tipe}]</span> 
+                            ${trx.namaBarang} (${trx.jumlah} ${trx.satuan || ''})
+                        </div>
+                        <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Deskripsi: <b>${trx.catatan || '-'}</b></div>
                     </div>
                     <div style="font-size: 12px; color: #64748b; text-align: right;">${trx.tanggal}</div>
                 </div>
@@ -280,16 +370,14 @@ function tampilkanData(keyword = '') {
     }
 }
 
-// --- 4. AKSI UBAH STOK CEPAT (+ / -) DENGAN REASON ---
+// --- 5. AKSI UBAH STOK CEPAT (+ / -) ---
 function ubahStokQuick(id, delta) {
     const barang = listBarang.find(b => b.id === id);
     if (!barang) return;
 
-    // Munculkan kotak isian alasan (reason) saat tombol + atau - dipencet
     const aksiStr = delta > 0 ? 'menambahkan' : 'mengurangi';
-    const reason = prompt(`Masukkan alasan/keterangan ${aksiStr} stok "${barang.nama}":`, delta > 0 ? 'Restock dari supplier' : 'Barang keluar / dipakai');
+    const reason = prompt(`Masukkan deskripsi/alasan ${aksiStr} stok "${barang.nama}":`, delta > 0 ? 'Restock' : 'Penggunaan barang');
     
-    // Jika user menekan Cancel pada prompt, batalkan perubahan
     if (reason === null) return; 
 
     if (barang.stok + delta < 0) {
@@ -300,7 +388,7 @@ function ubahStokQuick(id, delta) {
     barang.stok += delta;
 
     riwayatTrx.push({
-        tipe: delta > 0 ? 'tambah stok' : 'kurang stok',
+        tipe: delta > 0 ? 'Tambah Stok' : 'Kurang Stok',
         namaBarang: barang.nama,
         jumlah: Math.abs(delta),
         satuan: barang.satuan,
@@ -313,7 +401,7 @@ function ubahStokQuick(id, delta) {
     updateStatistik();
 }
 
-// --- 5. HAPUS BARANG ---
+// --- 6. HAPUS BARANG ---
 function hapusBarang(id) {
     if (!confirm('Yakin ingin menghapus barang ini?')) return;
     listBarang = listBarang.filter(b => b.id !== id);
@@ -322,7 +410,7 @@ function hapusBarang(id) {
     updateStatistik();
 }
 
-// --- 6. UPDATE STATISTIK DASHBOARD ---
+// --- 7. UPDATE STATISTIK DASHBOARD ---
 function updateStatistik() {
     const sTotal = document.getElementById('sTotal');
     const sLow = document.getElementById('sLow');
