@@ -8,6 +8,25 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+<!-- MODAL / HALAMAN LOGIN -->
+<div id="dLogin" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f172a; display: flex; justify-content: center; align-items: center; z-index: 9999;">
+  <div style="background: #1e293b; padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; border: 1px solid #334155; color: white;">
+    <h2 style="margin-bottom: 20px; color: #38bdf8; text-align: center;">Login Stok Gudang</h2>
+    
+    <form id="fLogin">
+      <label for="uName" style="display: block; margin-bottom: 6px; font-size: 14px;">Username</label>
+      <input id="uName" type="text" required placeholder="Masukkan username" style="width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 6px; background: #0f172a; color: white; border: 1px solid #334155; box-sizing: border-box;">
+      
+      <label for="uPass" style="display: block; margin-bottom: 6px; font-size: 14px;">Password</label>
+      <input id="uPass" type="password" required placeholder="Masukkan password" style="width: 100%; padding: 10px; margin-bottom: 20px; border-radius: 6px; background: #0f172a; color: white; border: 1px solid #334155; box-sizing: border-box;">
+      
+      <button type="submit" style="width: 100%; background: #38bdf8; color: #0f172a; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Masuk</button>
+      <p id="loginError" style="color: #ef4444; font-size: 12px; text-align: center; margin-top: 10px; display: none;">Username atau password salah!</p>
+    </form>
+  </div>
+</div>
+
 <div class="wrap">
   <header class="top">
     <div class="brand">
@@ -181,7 +200,7 @@
     updateDoc,
     deleteDoc, 
     doc,
-    onSnapshot  // <--- 1. Pastikan onSnapshot diimpor di sini
+    onSnapshot 
   } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -198,7 +217,6 @@
   const analytics = getAnalytics(app);
   const db = getFirestore(app);
 
-  // Daftarkan ke objek window agar bisa diakses oleh app.js
   window.db = db;
   window.collection = collection;
   window.addDoc = addDoc;
@@ -207,7 +225,7 @@
   window.updateDoc = updateDoc;
   window.deleteDoc = deleteDoc;
   window.doc = doc;
-  window.onSnapshot = onSnapshot; // <--- 2. Daftarkan di sini agar bisa dipakai di app.js
+  window.onSnapshot = onSnapshot;
 </script>
 
 <script src="app.js"></script>
