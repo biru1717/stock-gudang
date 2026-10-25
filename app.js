@@ -1,13 +1,48 @@
+// --- 0. SISTEM LOGIN & AUTHENTICATION ---
+document.addEventListener('DOMContentLoaded', () => {
+    initAuth();
+    initApp();
+});
+
+function initAuth() {
+    const dLogin = document.getElementById('dLogin');
+    const fLogin = document.getElementById('fLogin');
+    const loginError = document.getElementById('loginError');
+
+    // Cek apakah user sudah login pada sesi browser saat ini
+    const isLogged = sessionStorage.getItem('isLoggedIn');
+    if (isLogged === 'true') {
+        if (dLogin) dLogin.style.display = 'none';
+    } else {
+        if (dLogin) dLogin.style.display = 'flex';
+    }
+
+    // Process submit form login
+    if (fLogin) {
+        fLogin.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const usernameInput = document.getElementById('uName')?.value.trim();
+            const passwordInput = document.getElementById('uPass')?.value.trim();
+
+            // Validasi Username & Password
+            if (usernameInput === 'jatimulya' && passwordInput === 'fore1234') {
+                sessionStorage.setItem('isLoggedIn', 'true');
+                if (dLogin) dLogin.style.display = 'none';
+                if (loginError) loginError.style.display = 'none';
+                fLogin.reset();
+            } else {
+                if (loginError) loginError.style.display = 'block';
+            }
+        });
+    }
+}
+
 // --- 1. INISIALISASI VARIABEL GLOBAL & STATE ---
 let activeTab = 'stok';
 let activeKategoriFilter = 'Semua';
 let activeSubFoodFilter = 'Semua';
 let tipeTrxModal = 'masuk';
 let selectedBarangEditId = null;
-
-document.addEventListener('DOMContentLoaded', () => {
-    initApp();
-});
 
 // --- 2. INISIALISASI UTAMA & EVENT LISTENERS ---
 function initApp() {
@@ -449,329 +484,4 @@ async function tampilkanData(keyword = '') {
             });
 
             let totalMasuk = riwayatTrx.filter(t => !t.tipe.toLowerCase().includes('out') && !t.tipe.toLowerCase().includes('kurang')).length;
-            let totalKeluar = riwayatTrx.filter(t => t.tipe.toLowerCase().includes('out') || t.tipe.toLowerCase().includes('kurang') || t.tipe.toLowerCase().includes('keluar')).length;
-
-            let html = `
-                <div style="background: #1e293b; padding: 20px; border-radius: 12px; margin-bottom: 20px; color: white;">
-                    <h3 style="margin-bottom: 10px; font-size: 16px; color: #38bdf8;">📊 Dashboard Ringkasan Aktivitas</h3>
-                    <div style="display: flex; gap: 20px; font-size: 14px;">
-                        <div>Total Transaksi Masuk: <b style="color: #10b981;">${totalMasuk}</b></div>
-                        <div>Total Transaksi Keluar: <b style="color: #ef4444;">${totalKeluar}</b></div>
-                    </div>
-                </div>
-            `;
-
-            let filteredRiwayat = riwayatTrx.filter(trx => {
-                let matchKeyword = trx.namaBarang.toLowerCase().includes(keyword.toLowerCase());
-                let katTrx = trx.kategori || 'FOOD';
-                let matchKategori = false;
-
-                if (activeKategoriFilter === 'Semua') {
-                    matchKategori = true;
-                } else if (activeKategoriFilter === 'FOOD') {
-                    if (katTrx.startsWith('FOOD')) {
-                        if (activeSubFoodFilter === 'Semua') {
-                            matchKategori = true;
-                        } else {
-                            matchKategori = katTrx === `FOOD - ${activeSubFoodFilter}`;
-                        }
-                    }
-                } else {
-                    matchKategori = katTrx === activeKategoriFilter;
-                }
-
-                return matchKeyword && matchKategori;
-            });
-
-            if (filteredRiwayat.length === 0) {
-                html += `
-                    <div style="text-align: center; color: #94a3b8; padding: 40px; background: #1e293b; border-radius: 12px;">
-                        <p>Belum ada riwayat transaksi pada kategori ini.</p>
-                    </div>`;
-            } else {
-                html += '<div style="display: flex; flex-direction: column; gap: 10px;">';
-                filteredRiwayat.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-                
-                filteredRiwayat.forEach(trx => {
-                    const isKeluar = trx.tipe.toLowerCase().includes('out') || trx.tipe.toLowerCase().includes('kurang') || trx.tipe.toLowerCase().includes('keluar');
-                    const color = isKeluar ? '#ef4444' : '#10b981';
-
-                    html += `
-                        <div style="background: #1e293b; padding: 14px 18px; border-radius: 8px; color: white; display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <div style="font-weight: 600;">
-                                    <span style="color: ${color}; font-weight: bold;">[${trx.tipe}]</span> 
-                                    ${trx.namaBarang} (${trx.jumlah} ${trx.satuan || ''}) 
-                                    <span style="background: #334155; color: #38bdf8; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 6px;">${trx.kategori || 'FOOD'}</span>
-                                </div>
-                                <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Deskripsi: <b>${trx.catatan || '-'}</b></div>
-                            </div>
-                            <div style="font-size: 12px; color: #64748b; text-align: right;">${trx.tanggal}</div>
-                        </div>
-                    `;
-                });
-                html += '</div>';
-            }
-            main.innerHTML = html;
-        } catch (error) {
-            console.error("Gagal memuat riwayat transaksi:", error);
-        }
-    }
-}
-
-// --- FUNGSI BANTUAN RENDER TAB STOK ---
-function renderStokView(listBarang, keyword, main) {
-    let filtered = listBarang.filter(item => {
-        let matchKeyword = item.nama.toLowerCase().includes(keyword.toLowerCase());
-        let katItem = item.kategori || 'FOOD';
-        let matchKategori = false;
-
-        if (activeKategoriFilter === 'Semua') {
-            matchKategori = true;
-        } else if (activeKategoriFilter === 'FOOD') {
-            if (katItem.startsWith('FOOD')) {
-                if (activeSubFoodFilter === 'Semua') {
-                    matchKategori = true;
-                } else {
-                    matchKategori = katItem === `FOOD - ${activeSubFoodFilter}`;
-                }
-            }
-        } else {
-            matchKategori = katItem === activeKategoriFilter;
-        }
-
-        return matchKeyword && matchKategori;
-    });
-
-    if (filtered.length === 0) {
-        main.innerHTML = `
-            <div style="text-align: center; color: #94a3b8; padding: 40px; background: #1e293b; border-radius: 12px; margin-top: 10px;">
-                <p>Belum ada barang pada kategori ini.</p>
-            </div>`;
-        return;
-    }
-
-    let html = '<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 5px;">';
-    filtered.forEach(item => {
-        let statusWarna = item.stok <= item.min ? '#f59e0b' : '#38bdf8';
-        if (item.stok === 0) statusWarna = '#ef4444';
-
-        html += `
-            <div style="background: #1e293b; padding: 16px 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; color: white;">
-                <div>
-                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
-                        <strong style="font-size: 16px; color: #f8fafc;">${item.nama}</strong>
-                        <span style="background: #334155; color: #38bdf8; font-size: 11px; padding: 2px 8px; border-radius: 12px;">${item.kategori || 'FOOD'}</span>
-                    </div>
-                    ${item.deskripsi && item.deskripsi !== '-' ? `<div style="font-size: 13px; color: #94a3b8; margin-top: 2px;">Ket: ${item.deskripsi}</div>` : ''}
-                    <div style="font-size: 13px; color: #cbd5e1; margin-top: 4px;">
-                        Stok: <span style="color: ${statusWarna}; font-weight: bold;">${item.stok} ${item.satuan}</span> 
-                        <span style="color: #64748b; font-size: 12px;">(Min: ${item.min})</span>
-                    </div>
-                </div>
-                <div style="display: flex; gap: 6px; align-items: center;">
-                    <button onclick="bukaModalEdit('${item.id}')" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 500;">Edit</button>
-                    <button onclick="ubahStokQuick('${item.id}', -1)" title="Kurangi Stok" style="background: #334155; color: white; border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">-</button>
-                    <button onclick="ubahStokQuick('${item.id}', 1)" title="Tambah Stok" style="background: #334155; color: white; border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">+</button>
-                    <button onclick="hapusBarang('${item.id}')" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Hapus</button>
-                </div>
-            </div>
-        `;
-    });
-    html += '</div>';
-    main.innerHTML = html;
-}
-
-// --- 5. BUKA MODAL EDIT STOK ---
-async function bukaModalEdit(id) {
-    try {
-        const querySnapshot = await window.getDocs(window.collection(window.db, "stok_barang"));
-        let barang = null;
-        
-        querySnapshot.forEach(docSnap => {
-            if (docSnap.id === id) {
-                barang = docSnap.data();
-            }
-        });
-
-        if (!barang) {
-            alert("Data barang tidak ditemukan!");
-            return;
-        }
-
-        selectedBarangEditId = id;
-        
-        const dEdit = document.getElementById('dEdit');
-        const fEdit = document.getElementById('fEdit');
-        const pEditNama = document.getElementById('pEditNama');
-        const boxAksiVendor = document.getElementById('boxAksiVendor');
-
-        if (pEditNama) pEditNama.textContent = `Barang: ${barang.nama} (${barang.kategori}) - Stok: ${barang.stok} ${barang.satuan}`;
-        if (fEdit) fEdit.reset();
-        if (boxAksiVendor) boxAksiVendor.style.display = 'none';
-
-        if (dEdit) dEdit.showModal();
-    } catch (error) {
-        console.error("Gagal membuka modal edit:", error);
-    }
-}
-
-// --- 6. AKSI UBAH STOK CEPAT (+ / -) ---
-async function ubahStokQuick(id, delta) {
-    try {
-        const barangDocRef = window.doc(window.db, "stok_barang", id);
-        const stokSnap = await window.getDocs(window.collection(window.db, "stok_barang"));
-        let barang = null;
-
-        stokSnap.forEach(docSnap => {
-            if (docSnap.id === id) {
-                barang = docSnap.data();
-            }
-        });
-
-        if (!barang) return;
-
-        const aksiStr = delta > 0 ? 'menambahkan' : 'mengurangi';
-        const reason = prompt(`Masukkan deskripsi/alasan ${aksiStr} stok "${barang.nama}":`, delta > 0 ? 'Restock' : 'Penggunaan barang');
-        
-        if (reason === null) return; 
-
-        let stokSekarang = Number(barang.stok) || 0;
-
-        if (stokSekarang + delta < 0) {
-            alert('Stok tidak boleh kurang dari 0!');
-            return;
-        }
-
-        const stokBaru = stokSekarang + delta;
-        await window.updateDoc(barangDocRef, { stok: stokBaru });
-
-        await window.addDoc(window.collection(window.db, "riwayat_trx"), {
-            tipe: delta > 0 ? 'Tambah Stok' : 'Kurang Stok',
-            namaBarang: barang.nama,
-            kategori: barang.kategori || 'FOOD',
-            jumlah: Math.abs(delta),
-            satuan: barang.satuan,
-            catatan: reason.trim() || '-',
-            tanggal: new Date().toLocaleString('id-ID'),
-            createdAt: new Date().toISOString()
-        });
-
-        tampilkanData();
-        updateStatistik();
-    } catch (error) {
-        console.error("Gagal mengubah stok cepat:", error);
-        alert("Terjadi kesalahan saat mengubah stok.");
-    }
-}
-
-// --- 7. HAPUS BARANG ---
-async function hapusBarang(id) {
-    if (!confirm('Yakin ingin menghapus barang ini?')) return;
-    try {
-        await window.deleteDoc(window.doc(window.db, "stok_barang", id));
-        tampilkanData();
-        updateStatistik();
-    } catch (error) {
-        console.error("Gagal menghapus barang:", error);
-        alert("Terjadi kesalahan saat menghapus barang.");
-    }
-}
-
-// --- 8. UPDATE STATISTIK DASHBOARD ATAS & INTERAKTIF KLIK ---
-async function updateStatistik() {
-    try {
-        const querySnapshot = await window.getDocs(window.collection(window.db, "stok_barang"));
-        let listBarang = [];
-        querySnapshot.forEach(docSnap => {
-            listBarang.push(docSnap.data());
-        });
-        updateStatistikRealtime(listBarang);
-    } catch (error) {
-        console.error("Gagal memperbarui statistik:", error);
-    }
-}
-
-function updateStatistikRealtime(listBarang) {
-    const sTotal = document.getElementById('sTotal');
-    const sLow = document.getElementById('sLow');
-    const sOut = document.getElementById('sOut');
-
-    const totalJenis = listBarang.length;
-    const listStokMenipis = listBarang.filter(b => Number(b.stok) > 0 && Number(b.stok) <= Number(b.min));
-    const listStokHabis = listBarang.filter(b => Number(b.stok) === 0);
-
-    if (sTotal) sTotal.textContent = totalJenis;
-    if (sLow) sLow.textContent = listStokMenipis.length;
-    if (sOut) sOut.textContent = listStokHabis.length;
-
-    const statLowCard = sLow.closest('.stat');
-    const statOutCard = sOut.closest('.stat');
-
-    if (statLowCard) {
-        statLowCard.style.cursor = 'pointer';
-        statLowCard.onclick = () => bukaModalAlerts('Stok Menipis (<= Batas Minimum)', listStokMenipis);
-    }
-
-    if (statOutCard) {
-        statOutCard.style.cursor = 'pointer';
-        statOutCard.onclick = () => bukaModalAlerts('Stok Habis (Jumlah 0)', listStokHabis);
-    }
-}
-
-// --- 9. FUNGSI MENAMPILKAN POP-UP DAFTAR BARANG DENGAN FORMAT STRIP 3 & SUB-KATEGORI FOOD ---
-function bukaModalAlerts(judul, items) {
-    const dAlerts = document.getElementById('dAlerts');
-    const tAlertsTitle = document.getElementById('tAlertsTitle');
-    const contentAlertsList = document.getElementById('contentAlertsList');
-
-    if (!dAlerts || !tAlertsTitle || !contentAlertsList) return;
-
-    tAlertsTitle.textContent = judul;
-
-    if (items.length === 0) {
-        contentAlertsList.innerHTML = '<p style="text-align: center; color: #94a3b8; padding: 20px;">Tidak ada barang dalam daftar ini.</p>';
-        dAlerts.showModal();
-        return;
-    }
-
-    let grouped = {};
-    items.forEach(item => {
-        let kat = item.kategori || 'FOOD';
-        if (!grouped[kat]) {
-            grouped[kat] = [];
-        }
-        grouped[kat].push(item);
-    });
-
-    let html = '';
-    for (let kat in grouped) {
-        let displayKat = kat;
-        if (kat.startsWith('FOOD - ')) {
-            let subFoodName = kat.replace('FOOD - ', '');
-            displayKat = `--- FOOD --- › ${subFoodName}`;
-        } else {
-            displayKat = `--- ${kat} ---`;
-        }
-
-        html += `
-            <div style="background: #1e293b; padding: 12px; border-radius: 8px; border-left: 3px solid #38bdf8; margin-bottom: 8px;">
-                <div style="font-weight: bold; color: #38bdf8; font-size: 13px; margin-bottom: 8px; letter-spacing: 0.5px;">${displayKat}</div>
-                <div style="display: flex; flex-direction: column; gap: 6px;">
-        `;
-
-        grouped[kat].forEach(b => {
-            html += `
-                <div style="display: flex; justify-content: space-between; font-size: 13px; background: #0f172a; padding: 6px 10px; border-radius: 6px; align-items: center;">
-                    <span style="color: #f8fafc;">• ${b.nama}</span>
-                    <strong style="color: ${b.stok === 0 ? '#ef4444' : '#f59e0b'};">${b.stok} ${b.satuan}</strong>
-                </div>
-            `;
-        });
-
-        html += `</div></div>`;
-    }
-
-    contentAlertsList.innerHTML = html;
-    dAlerts.showModal();
-}
+            let totalKeluar = riwayatTrx.filter(t => t.tipe.toLowerCase().includes('out') || t.tipe.toLowerCase().includes('kurang') || t.tipe.toLowerCase().includes('
