@@ -1,8 +1,30 @@
-// --- 0. SISTEM LOGIN & AUTHENTICATION ---
+// --- 0. SISTEM LOGIN, AUTHENTICATION & THEME ---
 document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
     initAuth();
     initApp();
 });
+
+function initTheme() {
+    const btnTheme = document.getElementById('btnTheme');
+    const currentTheme = localStorage.getItem('theme') || 'dark';
+    
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    if (btnTheme) {
+        btnTheme.textContent = currentTheme === 'dark' ? '☀️ Light' : '🌙 Dark';
+    }
+
+    if (btnTheme) {
+        btnTheme.addEventListener('click', () => {
+            let theme = document.documentElement.getAttribute('data-theme');
+            let newTheme = theme === 'dark' ? 'light' : 'dark';
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            btnTheme.textContent = newTheme === 'dark' ? '☀️ Light' : '🌙 Dark';
+        });
+    }
+}
 
 function initAuth() {
     const dLogin = document.getElementById('dLogin');
@@ -110,6 +132,7 @@ function initApp() {
                     stok: stok,
                     satuan: satuan,
                     min: batasMin,
+                    expired: '-',
                     createdAt: new Date().toISOString()
                 });
 
@@ -134,7 +157,7 @@ function initApp() {
         });
     }
 
-    // Modal Edit Stok & Opsi (Transfer In / Out / Vendor)
+    // Modal Edit Stok & Opsi (Transfer In / Out / Vendor + Tanggal Kedaluwarsa)
     const dEdit = document.getElementById('dEdit');
     const fEdit = document.getElementById('fEdit');
     const eOpsi = document.getElementById('eOpsi');
@@ -153,7 +176,7 @@ function initApp() {
         }
     }
 
-    // Submit Edit Stok ke Firebase
+    // Submit Edit Stok & Kedaluwarsa ke Firebase
     if (fEdit) {
         fEdit.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -162,6 +185,7 @@ function initApp() {
             const opsi = document.getElementById('eOpsi').value;
             const vendorAksi = document.getElementById('eVendorAksi').value;
             const qty = parseInt(document.getElementById('eQty').value) || 0;
+            const expiredDate = document.getElementById('eExpired')?.value || '-';
             const desc = document.getElementById('eDesc').value || '-';
 
             let isTambah = true;
@@ -204,7 +228,10 @@ function initApp() {
                     stokBaru -= qty;
                 }
 
-                await window.updateDoc(barangDocRef, { stok: stokBaru });
+                await window.updateDoc(barangDocRef, { 
+                    stok: stokBaru,
+                    expired: expiredDate !== '-' ? expiredDate : (barangData.expired || '-')
+                });
 
                 await window.addDoc(window.collection(window.db, "riwayat_trx"), {
                     tipe: labelTipe,
@@ -212,7 +239,7 @@ function initApp() {
                     kategori: barangData.kategori || 'FOOD',
                     jumlah: qty,
                     satuan: barangData.satuan,
-                    catatan: desc,
+                    catatan: `${desc} ${expiredDate !== '-' ? '(Exp: ' + expiredDate + ')' : ''}`,
                     tanggal: new Date().toLocaleString('id-ID'),
                     createdAt: new Date().toISOString()
                 });
@@ -411,7 +438,7 @@ async function renderFilterKategori() {
         
         baseCategories.forEach(kat => {
             let isActive = activeKategoriFilter === kat;
-            let bgStyle = isActive ? 'background: #38bdf8; color: #0f172a; font-weight: bold;' : 'background: #1e293b; color: #94a3b8;';
+            let bgStyle = isActive ? 'background: #38bdf8; color: #0f172a; font-weight: bold;' : 'background: var(--bg-card); color: var(--text-sub);';
             
             let labelKat = kat;
             if (kat === 'FOOD') {
@@ -428,7 +455,7 @@ async function renderFilterKategori() {
             
             subFoodList.forEach(sub => {
                 let isSubActive = activeSubFoodFilter === sub;
-                let subBgStyle = isSubActive ? 'background: #0284c7; color: white; font-weight: bold;' : 'background: #1e293b; color: #64748b;';
+                let subBgStyle = isSubActive ? 'background: #0284c7; color: white; font-weight: bold;' : 'background: var(--bg-card); color: var(--text-sub);';
                 html += `<button onclick="setSubFoodFilter('${sub}')" style="border: none; padding: 4px 10px; border-radius: 15px; cursor: pointer; font-size: 11px; ${subBgStyle}">↳ ${sub}</button>`;
             });
             html += '</div>';
@@ -462,7 +489,6 @@ async function tampilkanData(keyword = '') {
     if (!main) return;
 
     if (activeTab === 'stok') {
-        // Mendengarkan perubahan data stok secara real-time
         window.onSnapshot(window.collection(window.db, "stok_barang"), (querySnapshot) => {
             let listBarang = [];
             querySnapshot.forEach(docSnap => {
@@ -487,7 +513,7 @@ async function tampilkanData(keyword = '') {
             let totalKeluar = riwayatTrx.filter(t => t.tipe.toLowerCase().includes('out') || t.tipe.toLowerCase().includes('kurang') || t.tipe.toLowerCase().includes('keluar')).length;
 
             let html = `
-                <div style="background: #1e293b; padding: 20px; border-radius: 12px; margin-bottom: 20px; color: white;">
+                <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; margin-bottom: 20px; color: var(--text-color);">
                     <h3 style="margin-bottom: 10px; font-size: 16px; color: #38bdf8;">📊 Dashboard Ringkasan Aktivitas</h3>
                     <div style="display: flex; gap: 20px; font-size: 14px;">
                         <div>Total Transaksi Masuk: <b style="color: #10b981;">${totalMasuk}</b></div>
@@ -520,7 +546,7 @@ async function tampilkanData(keyword = '') {
 
             if (filteredRiwayat.length === 0) {
                 html += `
-                    <div style="text-align: center; color: #94a3b8; padding: 40px; background: #1e293b; border-radius: 12px;">
+                    <div style="text-align: center; color: var(--text-sub); padding: 40px; background: var(--bg-card); border-radius: 12px;">
                         <p>Belum ada riwayat transaksi pada kategori ini.</p>
                     </div>`;
             } else {
@@ -532,16 +558,16 @@ async function tampilkanData(keyword = '') {
                     const color = isKeluar ? '#ef4444' : '#10b981';
 
                     html += `
-                        <div style="background: #1e293b; padding: 14px 18px; border-radius: 8px; color: white; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="background: var(--bg-card); padding: 14px 18px; border-radius: 8px; color: var(--text-color); display: flex; justify-content: space-between; align-items: center;">
                             <div>
                                 <div style="font-weight: 600;">
                                     <span style="color: ${color}; font-weight: bold;">[${trx.tipe}]</span> 
                                     ${trx.namaBarang} (${trx.jumlah} ${trx.satuan || ''}) 
-                                    <span style="background: #334155; color: #38bdf8; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 6px;">${trx.kategori || 'FOOD'}</span>
+                                    <span style="background: var(--border-color); color: #38bdf8; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 6px;">${trx.kategori || 'FOOD'}</span>
                                 </div>
-                                <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Deskripsi: <b>${trx.catatan || '-'}</b></div>
+                                <div style="font-size: 12px; color: var(--text-sub); margin-top: 2px;">Deskripsi: <b>${trx.catatan || '-'}</b></div>
                             </div>
-                            <div style="font-size: 12px; color: #64748b; text-align: right;">${trx.tanggal}</div>
+                            <div style="font-size: 12px; color: var(--text-sub); text-align: right;">${trx.tanggal}</div>
                         </div>
                     `;
                 });
@@ -580,7 +606,7 @@ function renderStokView(listBarang, keyword, main) {
 
     if (filtered.length === 0) {
         main.innerHTML = `
-            <div style="text-align: center; color: #94a3b8; padding: 40px; background: #1e293b; border-radius: 12px; margin-top: 10px;">
+            <div style="text-align: center; color: var(--text-sub); padding: 40px; background: var(--bg-card); border-radius: 12px; margin-top: 10px;">
                 <p>Belum ada barang pada kategori ini.</p>
             </div>`;
         return;
@@ -592,22 +618,23 @@ function renderStokView(listBarang, keyword, main) {
         if (item.stok === 0) statusWarna = '#ef4444';
 
         html += `
-            <div style="background: #1e293b; padding: 16px 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; color: white;">
+            <div style="background: var(--bg-card); padding: 16px 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; color: var(--text-color);">
                 <div>
                     <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
-                        <strong style="font-size: 16px; color: #f8fafc;">${item.nama}</strong>
-                        <span style="background: #334155; color: #38bdf8; font-size: 11px; padding: 2px 8px; border-radius: 12px;">${item.kategori || 'FOOD'}</span>
+                        <strong style="font-size: 16px;">${item.nama}</strong>
+                        <span style="background: var(--border-color); color: #38bdf8; font-size: 11px; padding: 2px 8px; border-radius: 12px;">${item.kategori || 'FOOD'}</span>
                     </div>
-                    ${item.deskripsi && item.deskripsi !== '-' ? `<div style="font-size: 13px; color: #94a3b8; margin-top: 2px;">Ket: ${item.deskripsi}</div>` : ''}
-                    <div style="font-size: 13px; color: #cbd5e1; margin-top: 4px;">
+                    ${item.deskripsi && item.deskripsi !== '-' ? `<div style="font-size: 13px; color: var(--text-sub); margin-top: 2px;">Ket: ${item.deskripsi}</div>` : ''}
+                    <div style="font-size: 13px; color: var(--text-color); margin-top: 4px;">
                         Stok: <span style="color: ${statusWarna}; font-weight: bold;">${item.stok} ${item.satuan}</span> 
-                        <span style="color: #64748b; font-size: 12px;">(Min: ${item.min})</span>
+                        <span style="color: var(--text-sub); font-size: 12px;">(Min: ${item.min})</span>
+                        ${item.expired && item.expired !== '-' ? `<br><span style="color: #f43f5e; font-size: 12px; font-weight: 600;">📅 Expired: ${item.expired}</span>` : ''}
                     </div>
                 </div>
                 <div style="display: flex; gap: 6px; align-items: center;">
                     <button onclick="bukaModalEdit('${item.id}')" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 500;">Edit</button>
-                    <button onclick="ubahStokQuick('${item.id}', -1)" title="Kurangi Stok" style="background: #334155; color: white; border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">-</button>
-                    <button onclick="ubahStokQuick('${item.id}', 1)" title="Tambah Stok" style="background: #334155; color: white; border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">+</button>
+                    <button onclick="ubahStokQuick('${item.id}', -1)" title="Kurangi Stok" style="background: var(--border-color); color: var(--text-color); border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">-</button>
+                    <button onclick="ubahStokQuick('${item.id}', 1)" title="Tambah Stok" style="background: var(--border-color); color: var(--text-color); border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">+</button>
                     <button onclick="hapusBarang('${item.id}')" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Hapus</button>
                 </div>
             </div>
@@ -640,10 +667,14 @@ async function bukaModalEdit(id) {
         const fEdit = document.getElementById('fEdit');
         const pEditNama = document.getElementById('pEditNama');
         const boxAksiVendor = document.getElementById('boxAksiVendor');
+        const eExpired = document.getElementById('eExpired');
 
         if (pEditNama) pEditNama.textContent = `Barang: ${barang.nama} (${barang.kategori}) - Stok: ${barang.stok} ${barang.satuan}`;
         if (fEdit) fEdit.reset();
         if (boxAksiVendor) boxAksiVendor.style.display = 'none';
+        if (eExpired && barang.expired && barang.expired !== '-') {
+            eExpired.value = barang.expired;
+        }
 
         if (dEdit) dEdit.showModal();
     } catch (error) {
@@ -765,7 +796,7 @@ function bukaModalAlerts(judul, items) {
     tAlertsTitle.textContent = judul;
 
     if (items.length === 0) {
-        contentAlertsList.innerHTML = '<p style="text-align: center; color: #94a3b8; padding: 20px;">Tidak ada barang dalam daftar ini.</p>';
+        contentAlertsList.innerHTML = '<p style="text-align: center; color: var(--text-sub); padding: 20px;">Tidak ada barang dalam daftar ini.</p>';
         dAlerts.showModal();
         return;
     }
@@ -790,15 +821,15 @@ function bukaModalAlerts(judul, items) {
         }
 
         html += `
-            <div style="background: #1e293b; padding: 12px; border-radius: 8px; border-left: 3px solid #38bdf8; margin-bottom: 8px;">
+            <div style="background: var(--bg-main); padding: 12px; border-radius: 8px; border-left: 3px solid #38bdf8; margin-bottom: 8px;">
                 <div style="font-weight: bold; color: #38bdf8; font-size: 13px; margin-bottom: 8px; letter-spacing: 0.5px;">${displayKat}</div>
                 <div style="display: flex; flex-direction: column; gap: 6px;">
         `;
 
         grouped[kat].forEach(b => {
             html += `
-                <div style="display: flex; justify-content: space-between; font-size: 13px; background: #0f172a; padding: 6px 10px; border-radius: 6px; align-items: center;">
-                    <span style="color: #f8fafc;">• ${b.nama}</span>
+                <div style="display: flex; justify-content: space-between; font-size: 13px; background: var(--bg-card); padding: 6px 10px; border-radius: 6px; align-items: center;">
+                    <span style="color: var(--text-color);">• ${b.nama}</span>
                     <strong style="color: ${b.stok === 0 ? '#ef4444' : '#f59e0b'};">${b.stok} ${b.satuan}</strong>
                 </div>
             `;
