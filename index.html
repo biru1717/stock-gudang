@@ -10,17 +10,16 @@
 <body>
 
 <!-- MODAL / HALAMAN LOGIN -->
-<!-- MODAL / HALAMAN LOGIN -->
-<div id="dLogin" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f172a; display: flex; justify-content: center; align-items: center; z-index: 9999;">
-  <div style="background: #1e293b; padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; border: 1px solid #334155; color: white;">
+<div id="dLogin" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-main, #0f172a); display: flex; justify-content: center; align-items: center; z-index: 9999;">
+  <div style="background: var(--bg-card, #1e293b); padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; border: 1px solid var(--border-color, #334155); color: var(--text-color, white);">
     <h2 style="margin-bottom: 20px; color: #38bdf8; text-align: center;">Login Stok Gudang</h2>
     
     <form id="fLogin">
       <label for="uName" style="display: block; margin-bottom: 6px; font-size: 14px;">Username</label>
-      <input id="uName" type="text" required placeholder="Masukkan username" style="width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 6px; background: #0f172a; color: white; border: 1px solid #334155; box-sizing: border-box;">
+      <input id="uName" type="text" required placeholder="Masukkan username" style="width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 6px; background: var(--bg-main, #0f172a); color: var(--text-color, white); border: 1px solid var(--border-color, #334155); box-sizing: border-box;">
       
       <label for="uPass" style="display: block; margin-bottom: 6px; font-size: 14px;">Password</label>
-      <input id="uPass" type="password" required placeholder="Masukkan password" style="width: 100%; padding: 10px; margin-bottom: 20px; border-radius: 6px; background: #0f172a; color: white; border: 1px solid #334155; box-sizing: border-box;">
+      <input id="uPass" type="password" required placeholder="Masukkan password" style="width: 100%; padding: 10px; margin-bottom: 20px; border-radius: 6px; background: var(--bg-main, #0f172a); color: var(--text-color, white); border: 1px solid var(--border-color, #334155); box-sizing: border-box;">
       
       <button type="submit" style="width: 100%; background: #38bdf8; color: #0f172a; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Masuk</button>
       <p id="loginError" style="color: #ef4444; font-size: 12px; text-align: center; margin-top: 10px; display: none;">Username atau password salah!</p>
@@ -34,7 +33,11 @@
       <span class="logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></span>
       <div><h1>Stok Barang</h1><p class="sub">Catat barang masuk dan keluar dengan mudah</p></div>
     </div>
-    <div class="hact"><button id="btnAdd">Tambah barang</button><button class="primary" id="btnTrx">Catat transaksi</button></div>
+    <div class="hact">
+      <button id="btnTheme" title="Ganti Tema" style="background: var(--bg-card); color: var(--text-color); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; cursor: pointer;">🌙 Mode</button>
+      <button id="btnAdd">Tambah barang</button>
+      <button class="primary" id="btnTrx">Catat transaksi</button>
+    </div>
   </header>
 
   <section class="stats" aria-label="Ringkasan">
@@ -63,7 +66,7 @@
     <input id="iNama" required maxlength="60" placeholder="Contoh: Kertas A4">
     
     <label for="iKategori">Kategori</label>
-    <select id="iKategori" required style="width:100%; padding:8px; margin-bottom:12px; border-radius:6px; background:#0f172a; color:white; border:1px solid #334155;">
+    <select id="iKategori" required style="width:100%; padding:8px; margin-bottom:12px; border-radius:6px; background:var(--bg-main); color:var(--text-color); border:1px solid var(--border-color);">
       <option value="FOOD">FOOD</option>
       <option value="SYRUP">SYRUP</option>
       <option value="SAUCE">SAUCE</option>
@@ -89,7 +92,7 @@
     <!-- BOX SUB-KATEGORI FOOD (Hanya muncul jika FOOD dipilih) -->
     <div id="boxSubFood" style="margin-bottom:12px;">
       <label for="iSubFood">Sub-Kategori Food</label>
-      <select id="iSubFood" style="width:100%; padding:8px; border-radius:6px; background:#0f172a; color:white; border:1px solid #334155;">
+      <select id="iSubFood" style="width:100%; padding:8px; border-radius:6px; background:var(--bg-main); color:var(--text-color); border:1px solid var(--border-color);">
         <option value="SANDWICH">SANDWICH</option>
         <option value="POUND CAKE">POUND CAKE</option>
         <option value="PASTRY">PASTRY</option>
@@ -116,14 +119,14 @@
   </form>
 </dialog>
 
-<!-- DIALOG EDIT STOK (TRANSFER IN / OUT / VENDOR) -->
+<!-- DIALOG EDIT STOK & TANGGAL KADALUWARSA -->
 <dialog id="dEdit">
   <form method="dialog" id="fEdit">
     <h2 id="tEditT">Edit Stok Barang</h2>
     <p id="pEditNama" style="color: #38bdf8; font-weight: 600; margin-bottom: 12px;"></p>
     
     <label for="eOpsi">Opsi Transaksi</label>
-    <select id="eOpsi" required style="width:100%; padding:8px; margin-bottom:12px; border-radius:6px; background:#0f172a; color:white; border:1px solid #334155;">
+    <select id="eOpsi" required style="width:100%; padding:8px; margin-bottom:12px; border-radius:6px; background:var(--bg-main); color:var(--text-color); border:1px solid var(--border-color);">
       <option value="Transfer In">Transfer In (Tambah Stok)</option>
       <option value="Transfer Out">Transfer Out (Kurang Stok)</option>
       <option value="Vendor">Vendor</option>
@@ -131,7 +134,7 @@
 
     <div id="boxAksiVendor" style="display:none; margin-bottom:12px;">
       <label for="eVendorAksi">Aksi Vendor</label>
-      <select id="eVendorAksi" style="width:100%; padding:8px; border-radius:6px; background:#0f172a; color:white; border:1px solid #334155;">
+      <select id="eVendorAksi" style="width:100%; padding:8px; border-radius:6px; background:var(--bg-main); color:var(--text-color); border:1px solid var(--border-color);">
         <option value="tambah">Tambah Stok (Masuk dari Vendor)</option>
         <option value="kurang">Kurang Stok (Retur ke Vendor)</option>
       </select>
@@ -142,6 +145,12 @@
         <label for="eQty">Jumlah</label>
         <input id="eQty" type="number" min="1" value="1" required style="width:100%;">
       </div>
+    </div>
+
+    <!-- TAMBAHAN INPUT TANGGAL KADALUWARSA -->
+    <div style="margin-top: 10px;">
+      <label for="eExpired">Tanggal Kedaluwarsa (Opsional)</label>
+      <input id="eExpired" type="date" style="width:100%; padding:8px; border-radius:6px; background:var(--bg-main); color:var(--text-color); border:1px solid var(--border-color); box-sizing: border-box;">
     </div>
 
     <label for="eDesc" style="margin-top:10px;">Deskripsi / Catatan</label>
@@ -176,13 +185,13 @@
 </dialog>
 
 <!-- DIALOG DAFTAR STOK MENIPIS / HABIS (INTERAKTIF) -->
-<dialog id="dAlerts" style="background: #0f172a; color: white; border: 1px solid #334155; border-radius: 12px; padding: 20px; width: 90%; max-width: 500px;">
+<dialog id="dAlerts" style="background: var(--bg-card); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; width: 90%; max-width: 500px;">
   <h2 id="tAlertsTitle" style="color: #38bdf8; font-size: 18px; margin-bottom: 15px;">Daftar Barang</h2>
   <div id="contentAlertsList" style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
     <!-- Daftar barang per kategori akan dirender di sini secara dinamis -->
   </div>
   <div class="foot" style="display: flex; justify-content: flex-end;">
-    <button type="button" class="cancel" onclick="document.getElementById('dAlerts').close()" style="background: #334155; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Tutup</button>
+    <button type="button" class="cancel" onclick="document.getElementById('dAlerts').close()" style="background: var(--border-color); color: var(--text-color); border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Tutup</button>
   </div>
 </dialog>
 
