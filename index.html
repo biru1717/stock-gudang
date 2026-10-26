@@ -119,7 +119,7 @@
   </form>
 </dialog>
 
-<!-- DIALOG EDIT STOK & TANGGAL KADALUWARSA -->
+<!-- DIALOG EDIT STOK & TANGGAL KADALUWARSA & STATUS TITO -->
 <dialog id="dEdit">
   <form method="dialog" id="fEdit">
     <h2 id="tEditT">Edit Stok Barang</h2>
@@ -131,6 +131,15 @@
       <option value="Transfer Out">Transfer Out (Kurang Stok)</option>
       <option value="Vendor">Vendor</option>
     </select>
+
+    <!-- PILIHAN STATUS TITO (Hanya muncul untuk Transfer In / Transfer Out) -->
+    <div id="boxStatusTito" style="margin-bottom:12px;">
+      <label for="eStatusTito">Status TITO</label>
+      <select id="eStatusTito" style="width:100%; padding:8px; border-radius:6px; background:var(--bg-main); color:var(--text-color); border:1px solid var(--border-color);">
+        <option value="Belum TITO">Belum TITO</option>
+        <option value="Sudah TITO">Sudah TITO</option>
+      </select>
+    </div>
 
     <div id="boxAksiVendor" style="display:none; margin-bottom:12px;">
       <label for="eVendorAksi">Aksi Vendor</label>
@@ -159,6 +168,28 @@
     <div class="foot" style="margin-top:15px; display:flex; justify-content:flex-end; gap:8px;">
       <button type="button" class="cancel">Batal</button>
       <button class="primary" type="submit">Simpan Perubahan</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- DIALOG EDIT RIWAYAT (Khusus ubah Status TITO & Catatan dari Riwayat) -->
+<dialog id="dEditRiwayat">
+  <form method="dialog" id="fEditRiwayat">
+    <h2>Edit Status Transaksi</h2>
+    <p id="pEditRiwayatInfo" style="color: #38bdf8; font-weight: 600; margin-bottom: 12px; font-size: 14px;"></p>
+    
+    <label for="rStatusTito">Status TITO</label>
+    <select id="rStatusTito" required style="width:100%; padding:8px; margin-bottom:12px; border-radius:6px; background:var(--bg-main); color:var(--text-color); border:1px solid var(--border-color);">
+      <option value="Belum TITO">Belum TITO</option>
+      <option value="Sudah TITO">Sudah TITO</option>
+    </select>
+
+    <label for="rCatatan">Deskripsi / Catatan</label>
+    <input id="rCatatan" maxlength="100" placeholder="Catatan transaksi" style="width:100%;">
+
+    <div class="foot" style="margin-top:15px; display:flex; justify-content:flex-end; gap:8px;">
+      <button type="button" class="cancel">Batal</button>
+      <button class="primary" type="submit">Simpan</button>
     </div>
   </form>
 </dialog>
