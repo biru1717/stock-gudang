@@ -154,7 +154,7 @@ function initApp() {
         });
     }
 
-    // Modal Edit Stok & Pilihan Transfer In / Out / Vendor + Status TITO
+    // Modal Edit Stok & Pilihan Opsi Transaksi + Status TITO
     const dEdit = document.getElementById('dEdit');
     const fEdit = document.getElementById('fEdit');
     const eOpsi = document.getElementById('eOpsi');
@@ -198,9 +198,18 @@ function initApp() {
             } else if (opsi === 'Transfer Out') {
                 isTambah = false;
                 statusTitoFinal = statusTito;
+            } else if (opsi === 'Restock') {
+                isTambah = true;
+                labelTipe = 'Restock (+)';
+                statusTitoFinal = '-';
+            } else if (opsi === 'Kebutuhan Operasional') {
+                isTambah = false;
+                labelTipe = 'Kebutuhan Operasional (-)';
+                statusTitoFinal = '-';
             } else if (opsi === 'Vendor') {
                 isTambah = (vendorAksi === 'tambah');
                 labelTipe = `Vendor (${vendorAksi === 'tambah' ? 'In' : 'Out'})`;
+                statusTitoFinal = '-';
             }
 
             try {
