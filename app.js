@@ -31,7 +31,6 @@ function initAuth() {
     const fLogin = document.getElementById('fLogin');
     const loginError = document.getElementById('loginError');
 
-    // Cek apakah user sudah login pada sesi browser saat ini
     const isLogged = sessionStorage.getItem('isLoggedIn');
     if (isLogged === 'true') {
         if (dLogin) dLogin.style.setProperty('display', 'none', 'important');
@@ -39,14 +38,12 @@ function initAuth() {
         if (dLogin) dLogin.style.setProperty('display', 'flex', 'important');
     }
 
-    // Process submit form login
     if (fLogin) {
         fLogin.addEventListener('submit', (e) => {
             e.preventDefault();
             const usernameInput = document.getElementById('uName')?.value.trim();
             const passwordInput = document.getElementById('uPass')?.value.trim();
 
-            // Validasi Username & Password
             if (usernameInput === 'jatimulya' && passwordInput === 'fore1234') {
                 sessionStorage.setItem('isLoggedIn', 'true');
                 if (dLogin) dLogin.style.setProperty('display', 'none', 'important');
@@ -65,13 +62,13 @@ let activeKategoriFilter = 'Semua';
 let activeSubFoodFilter = 'Semua';
 let tipeTrxModal = 'masuk';
 let selectedBarangEditId = null;
+let selectedRiwayatEditId = null;
 
 // --- 2. INISIALISASI UTAMA & EVENT LISTENERS ---
 function initApp() {
     tampilkanData();
     updateStatistik();
 
-    // Event Listener Kategori FOOD di Modal Tambah Barang
     const selectKategori = document.getElementById('iKategori');
     const boxSubFood = document.getElementById('boxSubFood');
 
@@ -81,7 +78,6 @@ function initApp() {
         });
     }
 
-    // Tombol Tambah Barang
     const btnAdd = document.getElementById('btnAdd');
     const dItem = document.getElementById('dItem');
     const fItem = document.getElementById('fItem');
@@ -105,7 +101,7 @@ function initApp() {
         }
     }
 
-    // Submit Tambah Barang ke Firebase
+    // Submit Tambah Barang Baru
     if (fItem) {
         fItem.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -142,6 +138,7 @@ function initApp() {
                     kategori: kategoriFinal,
                     jumlah: stok,
                     satuan: satuan,
+                    statusTito: '-',
                     catatan: `Kategori: ${kategoriFinal} (${desc})`,
                     tanggal: new Date().toLocaleString('id-ID'),
                     createdAt: new Date().toISOString()
@@ -157,15 +154,17 @@ function initApp() {
         });
     }
 
-    // Modal Edit Stok & Opsi (Transfer In / Out / Vendor + Tanggal Kedaluwarsa)
+    // Modal Edit Stok & Pilihan Transfer In / Out / Vendor + Status TITO
     const dEdit = document.getElementById('dEdit');
     const fEdit = document.getElementById('fEdit');
     const eOpsi = document.getElementById('eOpsi');
     const boxAksiVendor = document.getElementById('boxAksiVendor');
+    const boxStatusTito = document.getElementById('boxStatusTito');
 
-    if (eOpsi && boxAksiVendor) {
+    if (eOpsi) {
         eOpsi.addEventListener('change', () => {
-            boxAksiVendor.style.display = eOpsi.value === 'Vendor' ? 'block' : 'none';
+            if (boxAksiVendor) boxAksiVendor.style.display = eOpsi.value === 'Vendor' ? 'block' : 'none';
+            if (boxStatusTito) boxStatusTito.style.display = (eOpsi.value === 'Transfer In' || eOpsi.value === 'Transfer Out') ? 'block' : 'none';
         });
     }
 
@@ -176,25 +175,29 @@ function initApp() {
         }
     }
 
-    // Submit Edit Stok & Kedaluwarsa ke Firebase
+    // Submit Edit Stok & Simpan Status TITO ke Riwayat
     if (fEdit) {
         fEdit.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!selectedBarangEditId) return;
 
             const opsi = document.getElementById('eOpsi').value;
-            const vendorAksi = document.getElementById('eVendorAksi').value;
+            const vendorAksi = document.getElementById('eVendorAksi')?.value || 'tambah';
+            const statusTito = document.getElementById('eStatusTito')?.value || 'Belum TITO';
             const qty = parseInt(document.getElementById('eQty').value) || 0;
             const expiredDate = document.getElementById('eExpired')?.value || '-';
             const desc = document.getElementById('eDesc').value || '-';
 
             let isTambah = true;
             let labelTipe = opsi;
+            let statusTitoFinal = '-';
 
             if (opsi === 'Transfer In') {
                 isTambah = true;
+                statusTitoFinal = statusTito;
             } else if (opsi === 'Transfer Out') {
                 isTambah = false;
+                statusTitoFinal = statusTito;
             } else if (opsi === 'Vendor') {
                 isTambah = (vendorAksi === 'tambah');
                 labelTipe = `Vendor (${vendorAksi === 'tambah' ? 'In' : 'Out'})`;
@@ -239,6 +242,7 @@ function initApp() {
                     kategori: barangData.kategori || 'FOOD',
                     jumlah: qty,
                     satuan: barangData.satuan,
+                    statusTito: statusTitoFinal,
                     catatan: `${desc} ${expiredDate !== '-' ? '(Exp: ' + expiredDate + ')' : ''}`,
                     tanggal: new Date().toLocaleString('id-ID'),
                     createdAt: new Date().toISOString()
@@ -250,6 +254,39 @@ function initApp() {
             } catch (error) {
                 console.error("Gagal memperbarui stok di Firebase:", error);
                 alert("Terjadi kesalahan saat memperbarui data.");
+            }
+        });
+    }
+
+    // Modal Edit Riwayat (Status TITO & Catatan)
+    const dEditRiwayat = document.getElementById('dEditRiwayat');
+    const fEditRiwayat = document.getElementById('fEditRiwayat');
+
+    if (dEditRiwayat) {
+        const btnBatal = dEditRiwayat.querySelector('.cancel');
+        if (btnBatal) btnBatal.addEventListener('click', () => dEditRiwayat.close());
+    }
+
+    if (fEditRiwayat) {
+        fEditRiwayat.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!selectedRiwayatEditId) return;
+
+            const rStatusTito = document.getElementById('rStatusTito').value;
+            const rCatatan = document.getElementById('rCatatan').value;
+
+            try {
+                const riwayatRef = window.doc(window.db, "riwayat_trx", selectedRiwayatEditId);
+                await window.updateDoc(riwayatRef, {
+                    statusTito: rStatusTito,
+                    catatan: rCatatan
+                });
+
+                tampilkanData();
+                dEditRiwayat.close();
+            } catch (error) {
+                console.error("Gagal mengupdate riwayat:", error);
+                alert("Gagal memperbarui riwayat transaksi.");
             }
         });
     }
@@ -322,7 +359,6 @@ function initApp() {
         }
     }
 
-    // Submit Transaksi Header ke Firebase
     if (fTrx) {
         fTrx.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -370,6 +406,7 @@ function initApp() {
                     kategori: barangData.kategori || 'FOOD',
                     jumlah: qty,
                     satuan: barangData.satuan,
+                    statusTito: '-',
                     catatan: cat,
                     tanggal: new Date().toLocaleString('id-ID'),
                     createdAt: new Date().toISOString()
@@ -385,7 +422,6 @@ function initApp() {
         });
     }
 
-    // Tab Navigasi (Stok & Riwayat)
     const tabButtons = document.querySelectorAll('#tabs button');
     tabButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -399,7 +435,6 @@ function initApp() {
         });
     });
 
-    // Pencarian
     const searchInput = document.getElementById('q');
     if (searchInput) {
         searchInput.addEventListener('input', () => {
@@ -408,7 +443,7 @@ function initApp() {
     }
 }
 
-// --- 3. RENDER TOMBOL FILTER KATEGORI DENGAN DROPDOWN SUB-FOOD ---
+// --- 3. RENDER TOMBOL FILTER KATEGORI ---
 async function renderFilterKategori() {
     const filtersContainer = document.getElementById('filters');
     if (!filtersContainer) return;
@@ -482,7 +517,7 @@ function setSubFoodFilter(sub) {
     tampilkanData(searchInput ? searchInput.value : '');
 }
 
-// --- 4. MENAMPILKAN DATA KE <main id="main"> (REAL-TIME DENGAN onSNAPSHOT) ---
+// --- 4. TAMPILKAN DATA & DASHBOARD RIWAYAT DENGAN TITO ---
 async function tampilkanData(keyword = '') {
     await renderFilterKategori();
     const main = document.getElementById('main');
@@ -557,17 +592,35 @@ async function tampilkanData(keyword = '') {
                     const isKeluar = trx.tipe.toLowerCase().includes('out') || trx.tipe.toLowerCase().includes('kurang') || trx.tipe.toLowerCase().includes('keluar');
                     const color = isKeluar ? '#ef4444' : '#10b981';
 
+                    // Rendering badge TITO jika transaksi berjenis Transfer In / Transfer Out
+                    let titoBadge = '';
+                    if (trx.statusTito && trx.statusTito !== '-') {
+                        const isSudah = trx.statusTito === 'Sudah TITO';
+                        const titoBg = isSudah ? 'background: #10b981; color: white;' : 'background: #f59e0b; color: #0f172a;';
+                        titoBadge = `<span style="${titoBg} font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: bold; margin-left: 6px;">${trx.statusTito}</span>`;
+                    }
+
+                    // Menampilkan tombol "Edit TITO" hanya jika opsi berjenis Transfer In / Out
+                    let btnEditTito = '';
+                    if (trx.tipe === 'Transfer In' || trx.tipe === 'Transfer Out' || (trx.statusTito && trx.statusTito !== '-')) {
+                        btnEditTito = `<button onclick="bukaModalEditRiwayat('${trx.id}', '${trx.namaBarang}', '${trx.statusTito || 'Belum TITO'}', '${(trx.catatan || '').replace(/'/g, "\\'")}')" style="background: #3b82f6; color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">Edit TITO</button>`;
+                    }
+
                     html += `
                         <div style="background: var(--bg-card); padding: 14px 18px; border-radius: 8px; color: var(--text-color); display: flex; justify-content: space-between; align-items: center;">
                             <div>
-                                <div style="font-weight: 600;">
+                                <div style="font-weight: 600; display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
                                     <span style="color: ${color}; font-weight: bold;">[${trx.tipe}]</span> 
                                     ${trx.namaBarang} (${trx.jumlah} ${trx.satuan || ''}) 
-                                    <span style="background: var(--border-color); color: #38bdf8; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 6px;">${trx.kategori || 'FOOD'}</span>
+                                    <span style="background: var(--border-color); color: #38bdf8; font-size: 10px; padding: 2px 6px; border-radius: 10px;">${trx.kategori || 'FOOD'}</span>
+                                    ${titoBadge}
                                 </div>
-                                <div style="font-size: 12px; color: var(--text-sub); margin-top: 2px;">Deskripsi: <b>${trx.catatan || '-'}</b></div>
+                                <div style="font-size: 12px; color: var(--text-sub); margin-top: 4px;">Deskripsi: <b>${trx.catatan || '-'}</b></div>
                             </div>
-                            <div style="font-size: 12px; color: var(--text-sub); text-align: right;">${trx.tanggal}</div>
+                            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+                                <div style="font-size: 12px; color: var(--text-sub);">${trx.tanggal}</div>
+                                ${btnEditTito}
+                            </div>
                         </div>
                     `;
                 });
@@ -667,11 +720,13 @@ async function bukaModalEdit(id) {
         const fEdit = document.getElementById('fEdit');
         const pEditNama = document.getElementById('pEditNama');
         const boxAksiVendor = document.getElementById('boxAksiVendor');
+        const boxStatusTito = document.getElementById('boxStatusTito');
         const eExpired = document.getElementById('eExpired');
 
         if (pEditNama) pEditNama.textContent = `Barang: ${barang.nama} (${barang.kategori}) - Stok: ${barang.stok} ${barang.satuan}`;
         if (fEdit) fEdit.reset();
         if (boxAksiVendor) boxAksiVendor.style.display = 'none';
+        if (boxStatusTito) boxStatusTito.style.display = 'block';
         if (eExpired && barang.expired && barang.expired !== '-') {
             eExpired.value = barang.expired;
         }
@@ -680,6 +735,21 @@ async function bukaModalEdit(id) {
     } catch (error) {
         console.error("Gagal membuka modal edit:", error);
     }
+}
+
+// --- FUNGSI BUKA MODAL EDIT RIWAYAT (EDIT TITO & CATATAN) ---
+function bukaModalEditRiwayat(id, namaBarang, currentStatusTito, currentCatatan) {
+    selectedRiwayatEditId = id;
+    const dEditRiwayat = document.getElementById('dEditRiwayat');
+    const pEditRiwayatInfo = document.getElementById('pEditRiwayatInfo');
+    const rStatusTito = document.getElementById('rStatusTito');
+    const rCatatan = document.getElementById('rCatatan');
+
+    if (pEditRiwayatInfo) pEditRiwayatInfo.textContent = `Barang: ${namaBarang}`;
+    if (rStatusTito) rStatusTito.value = currentStatusTito !== '-' ? currentStatusTito : 'Belum TITO';
+    if (rCatatan) rCatatan.value = currentCatatan || '';
+
+    if (dEditRiwayat) dEditRiwayat.showModal();
 }
 
 // --- 6. AKSI UBAH STOK CEPAT (+ / -) ---
@@ -718,6 +788,7 @@ async function ubahStokQuick(id, delta) {
             kategori: barang.kategori || 'FOOD',
             jumlah: Math.abs(delta),
             satuan: barang.satuan,
+            statusTito: '-',
             catatan: reason.trim() || '-',
             tanggal: new Date().toLocaleString('id-ID'),
             createdAt: new Date().toISOString()
@@ -785,7 +856,7 @@ function updateStatistikRealtime(listBarang) {
     }
 }
 
-// --- 9. FUNGSI MENAMPILKAN POP-UP DAFTAR BARANG DENGAN FORMAT STRIP 3 & SUB-KATEGORI FOOD ---
+// --- 9. FUNGSI POP-UP ALERT ---
 function bukaModalAlerts(judul, items) {
     const dAlerts = document.getElementById('dAlerts');
     const tAlertsTitle = document.getElementById('tAlertsTitle');
