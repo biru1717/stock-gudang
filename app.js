@@ -526,7 +526,7 @@ function setSubFoodFilter(sub) {
     tampilkanData(searchInput ? searchInput.value : '');
 }
 
-// --- 4. TAMPILKAN DATA & DASHBOARD RIWAYAT DENGAN TITO ---
+// --- 4. TAMPILKAN DATA & STATISTIK / DIAGRAM BARANG KELUAR ---
 async function tampilkanData(keyword = '') {
     await renderFilterKategori();
     const main = document.getElementById('main');
@@ -553,15 +553,40 @@ async function tampilkanData(keyword = '') {
                 riwayatTrx.push({ id: docSnap.id, ...docSnap.data() });
             });
 
-            let totalMasuk = riwayatTrx.filter(t => !t.tipe.toLowerCase().includes('out') && !t.tipe.toLowerCase().includes('kurang')).length;
-            let totalKeluar = riwayatTrx.filter(t => t.tipe.toLowerCase().includes('out') || t.tipe.toLowerCase().includes('kurang') || t.tipe.toLowerCase().includes('keluar')).length;
+            // Filter transaksi yang termasuk barang keluar
+            let listKeluar = riwayatTrx.filter(t => {
+                const tipe = (t.tipe || '').toLowerCase();
+                return tipe.includes('out') || tipe.includes('kurang') || tipe.includes('keluar') || tipe.includes('operasional');
+            });
+
+            let totalMasuk = riwayatTrx.filter(t => !listKeluar.includes(t) && t.tipe !== 'TAMBAH BARANG BARU').length;
+            let totalKeluar = listKeluar.length;
+
+            // Agregasi jumlah barang keluar berdasarkan Nama Barang untuk Grafik Statistik
+            let statistikMap = {};
+            listKeluar.forEach(trx => {
+                let nama = trx.namaBarang || 'Lainnya';
+                let qty = Number(trx.jumlah) || 0;
+                if (!statistikMap[nama]) {
+                    statistikMap[nama] = 0;
+                }
+                statistikMap[nama] += qty;
+            });
+
+            let topBarangLabels = Object.keys(statistikMap);
+            let topBarangValues = Object.values(statistikMap);
 
             let html = `
                 <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; margin-bottom: 20px; color: var(--text-color);">
-                    <h3 style="margin-bottom: 10px; font-size: 16px; color: #38bdf8;">📊 Dashboard Ringkasan Aktivitas</h3>
-                    <div style="display: flex; gap: 20px; font-size: 14px;">
+                    <h3 style="margin-bottom: 10px; font-size: 16px; color: #38bdf8;">📊 Statistik & Diagram Barang Keluar</h3>
+                    <div style="display: flex; gap: 20px; font-size: 14px; margin-bottom: 15px;">
                         <div>Total Transaksi Masuk: <b style="color: #10b981;">${totalMasuk}</b></div>
                         <div>Total Transaksi Keluar: <b style="color: #ef4444;">${totalKeluar}</b></div>
+                    </div>
+                    
+                    <!-- Canvas Chart.js -->
+                    <div style="position: relative; height: 250px; width: 100%;">
+                        <canvas id="chartBarangKeluar"></canvas>
                     </div>
                 </div>
             `;
@@ -594,14 +619,14 @@ async function tampilkanData(keyword = '') {
                         <p>Belum ada riwayat transaksi pada kategori ini.</p>
                     </div>`;
             } else {
+                html += '<h3 style="margin-bottom: 10px; font-size: 15px; color: var(--text-color);">Daftar Riwayat Transaksi</h3>';
                 html += '<div style="display: flex; flex-direction: column; gap: 10px;">';
                 filteredRiwayat.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
                 
                 filteredRiwayat.forEach(trx => {
-                    const isKeluar = trx.tipe.toLowerCase().includes('out') || trx.tipe.toLowerCase().includes('kurang') || trx.tipe.toLowerCase().includes('keluar');
+                    const isKeluar = (trx.tipe || '').toLowerCase().includes('out') || (trx.tipe || '').toLowerCase().includes('kurang') || (trx.tipe || '').toLowerCase().includes('keluar') || (trx.tipe || '').toLowerCase().includes('operasional');
                     const color = isKeluar ? '#ef4444' : '#10b981';
 
-                    // Rendering badge TITO jika transaksi berjenis Transfer In / Transfer Out
                     let titoBadge = '';
                     if (trx.statusTito && trx.statusTito !== '-') {
                         const isSudah = trx.statusTito === 'Sudah TITO';
@@ -609,7 +634,6 @@ async function tampilkanData(keyword = '') {
                         titoBadge = `<span style="${titoBg} font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: bold; margin-left: 6px;">${trx.statusTito}</span>`;
                     }
 
-                    // Menampilkan tombol "Edit TITO" hanya jika opsi berjenis Transfer In / Out
                     let btnEditTito = '';
                     if (trx.tipe === 'Transfer In' || trx.tipe === 'Transfer Out' || (trx.statusTito && trx.statusTito !== '-')) {
                         btnEditTito = `<button onclick="bukaModalEditRiwayat('${trx.id}', '${trx.namaBarang}', '${trx.statusTito || 'Belum TITO'}', '${(trx.catatan || '').replace(/'/g, "\\'")}')" style="background: #3b82f6; color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">Edit TITO</button>`;
@@ -636,6 +660,39 @@ async function tampilkanData(keyword = '') {
                 html += '</div>';
             }
             main.innerHTML = html;
+
+            // Render Chart.js setelah DOM terupdate
+            setTimeout(() => {
+                const ctx = document.getElementById('chartBarangKeluar');
+                if (ctx) {
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: topBarangLabels.length > 0 ? topBarangLabels : ['Belum ada data'],
+                            datasets: [{
+                                label: 'Total Jumlah Barang Keluar',
+                                data: topBarangValues.length > 0 ? topBarangValues : [0],
+                                backgroundColor: '#ef4444',
+                                borderRadius: 6
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: { precision: 0 }
+                                }
+                            }
+                        }
+                    });
+                }
+            }, 100);
+
         } catch (error) {
             console.error("Gagal memuat riwayat transaksi:", error);
         }
