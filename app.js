@@ -318,10 +318,16 @@ function initApp() {
                     if (querySnapshot.empty) {
                         selectBarang.innerHTML = '<option value="">Belum ada barang</option>';
                     } else {
-                        querySnapshot.forEach((docSnap) => {
-                            const b = docSnap.data();
+                        // Urutkan abjad pada pilihan dropdown transaksi
+                        let barangOpts = [];
+                        querySnapshot.forEach(docSnap => {
+                            barangOpts.push({ id: docSnap.id, ...docSnap.data() });
+                        });
+                        barangOpts.sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
+
+                        barangOpts.forEach((b) => {
                             const opt = document.createElement('option');
-                            opt.value = docSnap.id;
+                            opt.value = b.id;
                             opt.textContent = `${b.nama} (${b.kategori}) - Stok: ${b.stok} ${b.satuan}`;
                             selectBarang.appendChild(opt);
                         });
@@ -553,7 +559,6 @@ async function tampilkanData(keyword = '') {
                 riwayatTrx.push({ id: docSnap.id, ...docSnap.data() });
             });
 
-            // Filter transaksi yang termasuk barang keluar
             let listKeluar = riwayatTrx.filter(t => {
                 const tipe = (t.tipe || '').toLowerCase();
                 return tipe.includes('out') || tipe.includes('kurang') || tipe.includes('keluar') || tipe.includes('operasional');
@@ -562,7 +567,6 @@ async function tampilkanData(keyword = '') {
             let totalMasuk = riwayatTrx.filter(t => !listKeluar.includes(t) && t.tipe !== 'TAMBAH BARANG BARU').length;
             let totalKeluar = listKeluar.length;
 
-            // Agregasi jumlah barang keluar berdasarkan Nama Barang untuk Grafik Statistik
             let statistikMap = {};
             listKeluar.forEach(trx => {
                 let nama = trx.namaBarang || 'Lainnya';
@@ -584,7 +588,6 @@ async function tampilkanData(keyword = '') {
                         <div>Total Transaksi Keluar: <b style="color: #ef4444;">${totalKeluar}</b></div>
                     </div>
                     
-                    <!-- Canvas Chart.js -->
                     <div style="position: relative; height: 250px; width: 100%;">
                         <canvas id="chartBarangKeluar"></canvas>
                     </div>
@@ -661,7 +664,6 @@ async function tampilkanData(keyword = '') {
             }
             main.innerHTML = html;
 
-            // Render Chart.js setelah DOM terupdate
             setTimeout(() => {
                 const ctx = document.getElementById('chartBarangKeluar');
                 if (ctx) {
@@ -699,7 +701,7 @@ async function tampilkanData(keyword = '') {
     }
 }
 
-// --- FUNGSI BANTUAN RENDER TAB STOK ---
+// --- FUNGSI BANTUAN RENDER TAB STOK (DIURUTKAN SESUAI ABJAD A-Z) ---
 function renderStokView(listBarang, keyword, main) {
     let filtered = listBarang.filter(item => {
         let matchKeyword = item.nama ? item.nama.toLowerCase().includes(keyword.toLowerCase()) : false;
@@ -722,6 +724,9 @@ function renderStokView(listBarang, keyword, main) {
 
         return matchKeyword && matchKategori;
     });
+
+    // Urutkan daftar barang berdasarkan nama secara abjad (A - Z)
+    filtered.sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
 
     if (filtered.length === 0) {
         main.innerHTML = `
@@ -922,7 +927,7 @@ function updateStatistikRealtime(listBarang) {
     }
 }
 
-// --- 9. FUNGSI POP-UP ALERT ---
+// --- 9. FUNGSI POP-UP ALERT (TAMPILAN TIDAK TRANSPARAN / SOLID) ---
 function bukaModalAlerts(judul, items) {
     const dAlerts = document.getElementById('dAlerts');
     const tAlertsTitle = document.getElementById('tAlertsTitle');
@@ -937,6 +942,9 @@ function bukaModalAlerts(judul, items) {
         dAlerts.showModal();
         return;
     }
+
+    // Urutkan item berdasarkan abjad juga di dalam popup alert
+    items.sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
 
     let grouped = {};
     items.forEach(item => {
@@ -957,15 +965,16 @@ function bukaModalAlerts(judul, items) {
             displayKat = `--- ${kat} ---`;
         }
 
+        // Menggunakan var(--bg-card) agar tampil solid dan tidak transparan
         html += `
-            <div style="background: var(--bg-main); padding: 12px; border-radius: 8px; border-left: 3px solid #38bdf8; margin-bottom: 8px;">
+            <div style="background: var(--bg-card); padding: 12px; border-radius: 8px; border-left: 3px solid #38bdf8; margin-bottom: 8px;">
                 <div style="font-weight: bold; color: #38bdf8; font-size: 13px; margin-bottom: 8px; letter-spacing: 0.5px;">${displayKat}</div>
                 <div style="display: flex; flex-direction: column; gap: 6px;">
         `;
 
         grouped[kat].forEach(b => {
             html += `
-                <div style="display: flex; justify-content: space-between; font-size: 13px; background: var(--bg-card); padding: 6px 10px; border-radius: 6px; align-items: center;">
+                <div style="display: flex; justify-content: space-between; font-size: 13px; background: var(--bg-main); padding: 6px 10px; border-radius: 6px; align-items: center;">
                     <span style="color: var(--text-color);">• ${b.nama}</span>
                     <strong style="color: ${b.stok === 0 ? '#ef4444' : '#f59e0b'};">${b.stok} ${b.satuan}</strong>
                 </div>
