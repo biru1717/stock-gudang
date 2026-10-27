@@ -62,7 +62,7 @@ let activeKategoriFilter = 'Semua';
 let activeSubFoodFilter = 'Semua';
 let activeRiwayatFilter = 'Semua';
 let activeChartKatFilter = 'Semua';     // Filter kategori khusus diagram
-let activeChartTimeFilter = 'Semua';    // Filter waktu khusus diagram (Semua, Harian, Mingguan, Bulanan)
+let activeChartTimeFilter = 'Semua';    // Filter waktu khusus diagram
 let tipeTrxModal = 'masuk';
 let selectedBarangEditId = null;
 let selectedRiwayatEditId = null;
@@ -657,7 +657,7 @@ async function tampilkanData(keyword = '') {
             });
             timeFilterHtml += '</div>';
 
-            // Filter Daftar Riwayat Transaksi di Bawah (mengikuti filter kategori utama aplikasi)
+            // Filter Daftar Riwayat Transaksi di Bawah
             let riwayatSesuaiKategoriUtama = riwayatTrx.filter(trx => {
                 let katTrx = trx.kategori || 'FOOD';
                 let matchKategori = false;
@@ -786,6 +786,7 @@ async function tampilkanData(keyword = '') {
             }
             main.innerHTML = html;
 
+            // Render Diagram Chart.js
             setTimeout(() => {
                 const ctx = document.getElementById('chartBarangKeluar');
                 if (ctx) {
@@ -913,12 +914,16 @@ async function bukaModalEdit(id) {
         const pEditNama = document.getElementById('pEditNama');
         const boxAksiVendor = document.getElementById('boxAksiVendor');
         const boxStatusTito = document.getElementById('boxStatusTito');
+        const eOpsi = document.getElementById('eOpsi');
         const eExpired = document.getElementById('eExpired');
 
         if (pEditNama) pEditNama.textContent = `Barang: ${barang.nama} (${barang.kategori}) - Stok: ${barang.stok} ${barang.satuan}`;
         if (fEdit) fEdit.reset();
+        
         if (boxAksiVendor) boxAksiVendor.style.display = 'none';
         if (boxStatusTito) boxStatusTito.style.display = 'block';
+        if (eOpsi) eOpsi.value = 'Transfer In';
+
         if (eExpired && barang.expired && barang.expired !== '-') {
             eExpired.value = barang.expired;
         }
@@ -929,7 +934,6 @@ async function bukaModalEdit(id) {
     }
 }
 
-// --- FUNGSI BUKA MODAL EDIT RIWAYAT (EDIT TITO & CATATAN) ---
 function bukaModalEditRiwayat(id, namaBarang, currentStatusTito, currentCatatan) {
     selectedRiwayatEditId = id;
     const dEditRiwayat = document.getElementById('dEditRiwayat');
@@ -944,7 +948,6 @@ function bukaModalEditRiwayat(id, namaBarang, currentStatusTito, currentCatatan)
     if (dEditRiwayat) dEditRiwayat.showModal();
 }
 
-// --- 6. AKSI UBAH STOK CEPAT (+ / -) ---
 async function ubahStokQuick(id, delta) {
     try {
         const barangDocRef = window.doc(window.db, "stok_barang", id);
@@ -994,7 +997,6 @@ async function ubahStokQuick(id, delta) {
     }
 }
 
-// --- 7. HAPUS BARANG ---
 async function hapusBarang(id) {
     if (!confirm('Yakin ingin menghapus barang ini?')) return;
     try {
@@ -1007,7 +1009,6 @@ async function hapusBarang(id) {
     }
 }
 
-// --- 8. UPDATE STATISTIK DASHBOARD ATAS & INTERAKTIF KLIK ---
 async function updateStatistik() {
     try {
         const querySnapshot = await window.getDocs(window.collection(window.db, "stok_barang"));
@@ -1048,7 +1049,6 @@ function updateStatistikRealtime(listBarang) {
     }
 }
 
-// --- 9. FUNGSI POP-UP ALERT ---
 function bukaModalAlerts(judul, items) {
     const dAlerts = document.getElementById('dAlerts');
     const tAlertsTitle = document.getElementById('tAlertsTitle');
