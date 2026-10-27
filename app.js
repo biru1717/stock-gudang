@@ -157,7 +157,7 @@ function initApp() {
         });
     }
 
-    // Modal Edit Stok & Pengaturan Tampilan Berdasarkan Opsi Transaksi
+    // Modal Edit Stok
     const dEdit = document.getElementById('dEdit');
     const fEdit = document.getElementById('fEdit');
     const eOpsi = document.getElementById('eOpsi');
@@ -170,8 +170,6 @@ function initApp() {
             const val = eOpsi.value;
             if (boxAksiVendor) boxAksiVendor.style.display = val === 'Vendor' ? 'block' : 'none';
             if (boxStatusTito) boxStatusTito.style.display = (val === 'Transfer In' || val === 'Transfer Out') ? 'block' : 'none';
-            
-            // Deskripsi hanya muncul untuk Transfer In dan Transfer Out
             if (boxDesc) {
                 boxDesc.style.display = (val === 'Transfer In' || val === 'Transfer Out') ? 'block' : 'none';
             }
@@ -218,7 +216,6 @@ function initApp() {
                 statusTitoFinal = '-';
             }
 
-            // Catatan dikosongkan jika bukan Transfer In / Transfer Out
             let catatanFinal = (opsi === 'Transfer In' || opsi === 'Transfer Out') ? desc : '-';
 
             try {
@@ -276,7 +273,7 @@ function initApp() {
         });
     }
 
-    // Modal Edit Riwayat (Status TITO & Catatan)
+    // Modal Edit Riwayat
     const dEditRiwayat = document.getElementById('dEditRiwayat');
     const fEditRiwayat = document.getElementById('fEditRiwayat');
 
@@ -469,7 +466,7 @@ function initApp() {
     }
 }
 
-// --- 3. RENDER TOMBOL FILTER KATEGORI UTAMA ---
+// --- 3. RENDER TOMBOL FILTER KATEGORI (GAYA PILLS SEPERTI GAMBAR) ---
 async function renderFilterKategori() {
     const filtersContainer = document.getElementById('filters');
     if (!filtersContainer) return;
@@ -495,29 +492,31 @@ async function renderFilterKategori() {
             }
         });
 
-        let html = '<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; align-items: center;">';
+        // Render Tombol Kategori Utama dalam bentuk Pill (Gaya Tombol Rapiah/Modern)
+        let html = '<div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; align-items: center;">';
         
         baseCategories.forEach(kat => {
             let isActive = activeKategoriFilter === kat;
-            let bgStyle = isActive ? 'background: #38bdf8; color: #0f172a; font-weight: bold;' : 'background: var(--bg-card); color: var(--text-sub);';
+            let bgStyle = isActive ? 'background: #38bdf8; color: #0f172a; font-weight: bold; border: none;' : 'background: var(--bg-card); color: var(--text-color); border: 1px solid var(--border-color);';
             
             let labelKat = kat;
             if (kat === 'FOOD') {
                 labelKat = kat + (isActive ? ' ▾' : ' ▸');
             }
 
-            html += `<button onclick="setFilterKategori('${kat}')" style="border: none; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 13px; ${bgStyle}">${labelKat}</button>`;
+            html += `<button onclick="setFilterKategori('${kat}')" style="padding: 6px 16px; border-radius: 20px; cursor: pointer; font-size: 13px; transition: 0.2s; ${bgStyle}">${labelKat}</button>`;
         });
         html += '</div>';
 
+        // Jika kategori FOOD dipilih, tampilkan sub-kategori di bawahnya dengan gaya serupa
         if (activeKategoriFilter === 'FOOD') {
             let subFoodList = ['Semua', 'SANDWICH', 'POUND CAKE', 'PASTRY', 'ROLL CAKE'];
-            html += '<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; padding-left: 10px; border-left: 2px solid #38bdf8;">';
+            html += '<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; padding-left: 5px;">';
             
             subFoodList.forEach(sub => {
                 let isSubActive = activeSubFoodFilter === sub;
-                let subBgStyle = isSubActive ? 'background: #0284c7; color: white; font-weight: bold;' : 'background: var(--bg-card); color: var(--text-sub);';
-                html += `<button onclick="setSubFoodFilter('${sub}')" style="border: none; padding: 4px 10px; border-radius: 15px; cursor: pointer; font-size: 11px; ${subBgStyle}">↳ ${sub}</button>`;
+                let subBgStyle = isSubActive ? 'background: #0284c7; color: white; font-weight: bold; border: none;' : 'background: var(--bg-card); color: var(--text-sub); border: 1px solid var(--border-color);';
+                html += `<button onclick="setSubFoodFilter('${sub}')" style="padding: 4px 12px; border-radius: 15px; cursor: pointer; font-size: 12px; ${subBgStyle}">↳ ${sub}</button>`;
             });
             html += '</div>';
         }
@@ -610,502 +609,4 @@ async function tampilkanData(keyword = '') {
                                      trxDate.getFullYear() === now.getFullYear());
                     } else if (activeChartTimeFilter === 'Mingguan') {
                         let diffTime = now - trxDate;
-                        let diffDays = diffTime / (1000 * 60 * 60 * 24);
-                        matchTime = (diffDays >= 0 && diffDays <= 7);
-                    } else if (activeChartTimeFilter === 'Bulanan') {
-                        matchTime = (trxDate.getMonth() === now.getMonth() &&
-                                     trxDate.getFullYear() === now.getFullYear());
-                    }
-                }
-
-                return matchKat && matchTime;
-            });
-
-            let listKeluar = riwayatUntukDiagram.filter(t => {
-                const tipe = (t.tipe || '').toLowerCase();
-                return tipe.includes('out') || tipe.includes('kurang') || tipe.includes('keluar') || tipe.includes('operasional');
-            });
-
-            let totalMasuk = riwayatUntukDiagram.filter(t => !listKeluar.includes(t) && t.tipe !== 'TAMBAH BARANG BARU').length;
-            let totalKeluar = listKeluar.length;
-
-            let statistikMap = {};
-            listKeluar.forEach(trx => {
-                let nama = trx.namaBarang || 'Lainnya';
-                let qty = Number(trx.jumlah) || 0;
-                if (!statistikMap[nama]) {
-                    statistikMap[nama] = 0;
-                }
-                statistikMap[nama] += qty;
-            });
-
-            let topBarangLabels = Object.keys(statistikMap);
-            let topBarangValues = Object.values(statistikMap);
-
-            let chartFilterHtml = '<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; align-items: center;">';
-            availableCategories.forEach(kat => {
-                let isActive = activeChartKatFilter === kat;
-                let bgStyle = isActive ? 'background: #38bdf8; color: #0f172a; font-weight: bold;' : 'background: var(--bg-main); color: var(--text-sub); border: 1px solid var(--border-color);';
-                chartFilterHtml += `<button onclick="setChartKatFilter('${kat}')" style="border: none; padding: 4px 10px; border-radius: 15px; cursor: pointer; font-size: 11px; ${bgStyle}">${kat}</button>`;
-            });
-            chartFilterHtml += '</div>';
-
-            let timeFilters = ['Semua', 'Harian', 'Mingguan', 'Bulanan'];
-            let timeFilterHtml = '<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; align-items: center;">';
-            timeFilters.forEach(t => {
-                let isActive = activeChartTimeFilter === t;
-                let bgStyle = isActive ? 'background: #10b981; color: white; font-weight: bold;' : 'background: var(--bg-main); color: var(--text-sub); border: 1px solid var(--border-color);';
-                timeFilterHtml += `<button onclick="setChartTimeFilter('${t}')" style="border: none; padding: 4px 10px; border-radius: 15px; cursor: pointer; font-size: 11px; ${bgStyle}">${t}</button>`;
-            });
-            timeFilterHtml += '</div>';
-
-            let riwayatSesuaiKategoriUtama = riwayatTrx.filter(trx => {
-                let katTrx = trx.kategori || 'FOOD';
-                let matchKategori = false;
-
-                if (activeKategoriFilter === 'Semua') {
-                    matchKategori = true;
-                } else if (activeKategoriFilter === 'FOOD') {
-                    if (katTrx.startsWith('FOOD')) {
-                        if (activeSubFoodFilter === 'Semua') {
-                            matchKategori = true;
-                        } else {
-                            matchKategori = katTrx === `FOOD - ${activeSubFoodFilter}`;
-                        }
-                    }
-                } else {
-                    matchKategori = katTrx === activeKategoriFilter;
-                }
-                return matchKategori;
-            });
-
-            let filteredRiwayat = riwayatSesuaiKategoriUtama.filter(trx => {
-                let matchKeyword = trx.namaBarang ? trx.namaBarang.toLowerCase().includes(keyword.toLowerCase()) : false;
-                let tipeTrx = (trx.tipe || '').toLowerCase();
-                let matchTipeRiwayat = true;
-
-                if (activeRiwayatFilter === 'Transfer In') {
-                    matchTipeRiwayat = tipeTrx.includes('transfer in');
-                } else if (activeRiwayatFilter === 'Transfer Out') {
-                    matchTipeRiwayat = tipeTrx.includes('transfer out');
-                } else if (activeRiwayatFilter === 'Masuk') {
-                    matchTipeRiwayat = (tipeTrx.includes('masuk') || tipeTrx.includes('restock')) && !tipeTrx.includes('transfer in');
-                } else if (activeRiwayatFilter === 'Keluar') {
-                    matchTipeRiwayat = (tipeTrx.includes('keluar') || tipeTrx.includes('kurang') || tipeTrx.includes('operasional')) && !tipeTrx.includes('transfer out');
-                } else if (activeRiwayatFilter === 'Baru') {
-                    matchTipeRiwayat = trx.tipe === 'TAMBAH BARANG BARU';
-                }
-
-                return matchKeyword && matchTipeRiwayat;
-            });
-
-            let riwayatFilterBtns = [
-                { id: 'Semua', label: 'Semua' },
-                { id: 'Transfer In', label: 'Transfer In' },
-                { id: 'Transfer Out', label: 'Transfer Out' },
-                { id: 'Masuk', label: 'Masuk / Restock' },
-                { id: 'Keluar', label: 'Keluar / Operasional' },
-                { id: 'Baru', label: 'Barang Baru' }
-            ];
-
-            let filterRiwayatHtml = '<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px;">';
-            riwayatFilterBtns.forEach(btn => {
-                let isActive = activeRiwayatFilter === btn.id;
-                let btnStyle = isActive ? 'background: #3b82f6; color: white; font-weight: bold;' : 'background: var(--bg-card); color: var(--text-sub);';
-                filterRiwayatHtml += `<button onclick="setFilterRiwayat('${btn.id}')" style="border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; ${btnStyle}">${btn.label}</button>`;
-            });
-            filterRiwayatHtml += '</div>';
-
-            let html = `
-                <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; margin-bottom: 20px; color: var(--text-color);">
-                    <h3 style="margin-bottom: 10px; font-size: 16px; color: #38bdf8;">📊 Statistik & Diagram Barang Keluar</h3>
-                    
-                    <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 6px;">Filter Kategori Diagram:</p>
-                    ${chartFilterHtml}
-
-                    <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 6px; margin-top: 10px;">Filter Rentang Waktu Diagram:</p>
-                    ${timeFilterHtml}
-                    
-                    <div style="display: flex; gap: 20px; font-size: 14px; margin-bottom: 15px; margin-top: 10px;">
-                        <div>Total Masuk (${activeChartKatFilter} / ${activeChartTimeFilter}): <b style="color: #10b981;">${totalMasuk}</b></div>
-                        <div>Total Keluar (${activeChartKatFilter} / ${activeChartTimeFilter}): <b style="color: #ef4444;">${totalKeluar}</b></div>
-                    </div>
-                    
-                    <div style="position: relative; height: 250px; width: 100%;">
-                        <canvas id="chartBarangKeluar"></canvas>
-                    </div>
-                </div>
-
-                <h3 style="margin-bottom: 10px; font-size: 15px; color: var(--text-color);">Daftar Riwayat Transaksi</h3>
-                ${filterRiwayatHtml}
-            `;
-
-            if (filteredRiwayat.length === 0) {
-                html += `
-                    <div style="text-align: center; color: var(--text-sub); padding: 40px; background: var(--bg-card); border-radius: 12px;">
-                        <p>Belum ada riwayat transaksi dengan filter ini.</p>
-                    </div>`;
-            } else {
-                html += '<div style="display: flex; flex-direction: column; gap: 10px;">';
-                filteredRiwayat.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-                
-                filteredRiwayat.forEach(trx => {
-                    const isKeluar = (trx.tipe || '').toLowerCase().includes('out') || (trx.tipe || '').toLowerCase().includes('kurang') || (trx.tipe || '').toLowerCase().includes('keluar') || (trx.tipe || '').toLowerCase().includes('operasional');
-                    const color = isKeluar ? '#ef4444' : '#10b981';
-
-                    let titoBadge = '';
-                    if (trx.statusTito && trx.statusTito !== '-') {
-                        const isSudah = trx.statusTito === 'Sudah TITO';
-                        const titoBg = isSudah ? 'background: #10b981; color: white;' : 'background: #f59e0b; color: #0f172a;';
-                        titoBadge = `<span style="${titoBg} font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: bold; margin-left: 6px;">${trx.statusTito}</span>`;
-                    }
-
-                    let btnEditTito = '';
-                    if (trx.tipe === 'Transfer In' || trx.tipe === 'Transfer Out' || (trx.statusTito && trx.statusTito !== '-')) {
-                        btnEditTito = `<button onclick="bukaModalEditRiwayat('${trx.id}', '${trx.namaBarang}', '${trx.statusTito || 'Belum TITO'}', '${(trx.catatan || '').replace(/'/g, "\\'")}')" style="background: #3b82f6; color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">Edit TITO</button>`;
-                    }
-
-                    html += `
-                        <div style="background: var(--bg-card); padding: 14px 18px; border-radius: 8px; color: var(--text-color); display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <div style="font-weight: 600; display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
-                                    <span style="color: ${color}; font-weight: bold;">[${trx.tipe}]</span> 
-                                    ${trx.namaBarang} (${trx.jumlah} ${trx.satuan || ''}) 
-                                    <span style="background: var(--border-color); color: #38bdf8; font-size: 10px; padding: 2px 6px; border-radius: 10px;">${trx.kategori || 'FOOD'}</span>
-                                    ${titoBadge}
-                                </div>
-                                <div style="font-size: 12px; color: var(--text-sub); margin-top: 4px;">Deskripsi: <b>${trx.catatan || '-'}</b></div>
-                            </div>
-                            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
-                                <div style="font-size: 12px; color: var(--text-sub);">${trx.tanggal}</div>
-                                ${btnEditTito}
-                            </div>
-                        </div>
-                    `;
-                });
-                html += '</div>';
-            }
-            main.innerHTML = html;
-
-            setTimeout(() => {
-                const ctx = document.getElementById('chartBarangKeluar');
-                if (ctx) {
-                    new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: topBarangLabels.length > 0 ? topBarangLabels : ['Belum ada data'],
-                            datasets: [{
-                                label: 'Total Jumlah Barang Keluar',
-                                data: topBarangValues.length > 0 ? topBarangValues : [0],
-                                backgroundColor: '#ef4444',
-                                borderRadius: 6
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: { display: false }
-                            },
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    ticks: { precision: 0 }
-                                }
-                            }
-                        }
-                    });
-                }
-            }, 100);
-
-        } catch (error) {
-            console.error("Gagal memuat riwayat transaksi:", error);
-        }
-    }
-}
-
-// --- FUNGSI BANTUAN RENDER TAB STOK ---
-function renderStokView(listBarang, keyword, main) {
-    let filtered = listBarang.filter(item => {
-        let matchKeyword = item.nama ? item.nama.toLowerCase().includes(keyword.toLowerCase()) : false;
-        let katItem = item.kategori || 'FOOD';
-        let matchKategori = false;
-
-        if (activeKategoriFilter === 'Semua') {
-            matchKategori = true;
-        } else if (activeKategoriFilter === 'FOOD') {
-            if (katItem.startsWith('FOOD')) {
-                if (activeSubFoodFilter === 'Semua') {
-                    matchKategori = true;
-                } else {
-                    matchKategori = katItem === `FOOD - ${activeSubFoodFilter}`;
-                }
-            }
-        } else {
-            matchKategori = katItem === activeKategoriFilter;
-        }
-
-        return matchKeyword && matchKategori;
-    });
-
-    filtered.sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
-
-    if (filtered.length === 0) {
-        main.innerHTML = `
-            <div style="text-align: center; color: var(--text-sub); padding: 40px; background: var(--bg-card); border-radius: 12px; margin-top: 10px;">
-                <p>Belum ada barang pada kategori ini.</p>
-            </div>`;
-        return;
-    }
-
-    let html = '<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 5px;">';
-    filtered.forEach(item => {
-        let statusWarna = item.stok <= item.min ? '#f59e0b' : '#38bdf8';
-        if (item.stok === 0) statusWarna = '#ef4444';
-
-        html += `
-            <div style="background: var(--bg-card); padding: 16px 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; color: var(--text-color);">
-                <div>
-                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
-                        <strong style="font-size: 16px;">${item.nama}</strong>
-                        <span style="background: var(--border-color); color: #38bdf8; font-size: 11px; padding: 2px 8px; border-radius: 12px;">${item.kategori || 'FOOD'}</span>
-                    </div>
-                    ${item.deskripsi && item.deskripsi !== '-' ? `<div style="font-size: 13px; color: var(--text-sub); margin-top: 2px;">Ket: ${item.deskripsi}</div>` : ''}
-                    <div style="font-size: 13px; color: var(--text-color); margin-top: 4px;">
-                        Stok: <span style="color: ${statusWarna}; font-weight: bold;">${item.stok} ${item.satuan}</span> 
-                        <span style="color: var(--text-sub); font-size: 12px;">(Min: ${item.min})</span>
-                        ${item.expired && item.expired !== '-' ? `<br><span style="color: #f43f5e; font-size: 12px; font-weight: 600;">📅 Expired: ${item.expired}</span>` : ''}
-                    </div>
-                </div>
-                <div style="display: flex; gap: 6px; align-items: center;">
-                    <button onclick="bukaModalEdit('${item.id}')" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 500;">Edit</button>
-                    <button onclick="ubahStokQuick('${item.id}', -1)" title="Kurangi Stok" style="background: var(--border-color); color: var(--text-color); border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">-</button>
-                    <button onclick="ubahStokQuick('${item.id}', 1)" title="Tambah Stok" style="background: var(--border-color); color: var(--text-color); border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">+</button>
-                    <button onclick="hapusBarang('${item.id}')" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Hapus</button>
-                </div>
-            </div>
-        `;
-    });
-    html += '</div>';
-    main.innerHTML = html;
-}
-
-// --- 5. BUKA MODAL EDIT STOK ---
-async function bukaModalEdit(id) {
-    try {
-        const querySnapshot = await window.getDocs(window.collection(window.db, "stok_barang"));
-        let barang = null;
-        
-        querySnapshot.forEach(docSnap => {
-            if (docSnap.id === id) {
-                barang = docSnap.data();
-            }
-        });
-
-        if (!barang) {
-            alert("Data barang tidak ditemukan!");
-            return;
-        }
-
-        selectedBarangEditId = id;
-        
-        const dEdit = document.getElementById('dEdit');
-        const fEdit = document.getElementById('fEdit');
-        const pEditNama = document.getElementById('pEditNama');
-        const boxAksiVendor = document.getElementById('boxAksiVendor');
-        const boxStatusTito = document.getElementById('boxStatusTito');
-        const boxDesc = document.getElementById('boxDesc');
-        const eOpsi = document.getElementById('eOpsi');
-        const eExpired = document.getElementById('eExpired');
-
-        if (pEditNama) pEditNama.textContent = `Barang: ${barang.nama} (${barang.kategori}) - Stok: ${barang.stok} ${barang.satuan}`;
-        if (fEdit) fEdit.reset();
-        
-        // Default awal saat modal dibuka (Transfer In)
-        if (boxAksiVendor) boxAksiVendor.style.display = 'none';
-        if (boxStatusTito) boxStatusTito.style.display = 'block';
-        if (boxDesc) boxDesc.style.display = 'block';
-        if (eOpsi) eOpsi.value = 'Transfer In';
-
-        if (eExpired && barang.expired && barang.expired !== '-') {
-            eExpired.value = barang.expired;
-        }
-
-        if (dEdit) dEdit.showModal();
-    } catch (error) {
-        console.error("Gagal membuka modal edit:", error);
-    }
-}
-
-function bukaModalEditRiwayat(id, namaBarang, currentStatusTito, currentCatatan) {
-    selectedRiwayatEditId = id;
-    const dEditRiwayat = document.getElementById('dEditRiwayat');
-    const pEditRiwayatInfo = document.getElementById('pEditRiwayatInfo');
-    const rStatusTito = document.getElementById('rStatusTito');
-    const rCatatan = document.getElementById('rCatatan');
-
-    if (pEditRiwayatInfo) pEditRiwayatInfo.textContent = `Barang: ${namaBarang}`;
-    if (rStatusTito) rStatusTito.value = currentStatusTito !== '-' ? currentStatusTito : 'Belum TITO';
-    if (rCatatan) rCatatan.value = currentCatatan || '';
-
-    if (dEditRiwayat) dEditRiwayat.showModal();
-}
-
-async function ubahStokQuick(id, delta) {
-    try {
-        const barangDocRef = window.doc(window.db, "stok_barang", id);
-        const stokSnap = await window.getDocs(window.collection(window.db, "stok_barang"));
-        let barang = null;
-
-        stokSnap.forEach(docSnap => {
-            if (docSnap.id === id) {
-                barang = docSnap.data();
-            }
-        });
-
-        if (!barang) return;
-
-        const aksiStr = delta > 0 ? 'menambahkan' : 'mengurangi';
-        const reason = prompt(`Masukkan deskripsi/alasan ${aksiStr} stok "${barang.nama}":`, delta > 0 ? 'Restock' : 'Penggunaan barang');
-        
-        if (reason === null) return; 
-
-        let stokSekarang = Number(barang.stok) || 0;
-
-        if (stokSekarang + delta < 0) {
-            alert('Stok tidak boleh kurang dari 0!');
-            return;
-        }
-
-        const stokBaru = stokSekarang + delta;
-        await window.updateDoc(barangDocRef, { stok: stokBaru });
-
-        await window.addDoc(window.collection(window.db, "riwayat_trx"), {
-            tipe: delta > 0 ? 'Tambah Stok' : 'Kurang Stok',
-            namaBarang: barang.nama,
-            kategori: barang.kategori || 'FOOD',
-            jumlah: Math.abs(delta),
-            satuan: barang.satuan,
-            statusTito: '-',
-            catatan: reason.trim() || '-',
-            tanggal: new Date().toLocaleString('id-ID'),
-            createdAt: new Date().toISOString()
-        });
-
-        tampilkanData();
-        updateStatistik();
-    } catch (error) {
-        console.error("Gagal mengubah stok cepat:", error);
-        alert("Terjadi kesalahan saat mengubah stok.");
-    }
-}
-
-async function hapusBarang(id) {
-    if (!confirm('Yakin ingin menghapus barang ini?')) return;
-    try {
-        await window.deleteDoc(window.doc(window.db, "stok_barang", id));
-        tampilkanData();
-        updateStatistik();
-    } catch (error) {
-        console.error("Gagal menghapus barang:", error);
-        alert("Terjadi kesalahan saat menghapus barang.");
-    }
-}
-
-async function updateStatistik() {
-    try {
-        const querySnapshot = await window.getDocs(window.collection(window.db, "stok_barang"));
-        let listBarang = [];
-        querySnapshot.forEach(docSnap => {
-            listBarang.push(docSnap.data());
-        });
-        updateStatistikRealtime(listBarang);
-    } catch (error) {
-        console.error("Gagal memperbarui statistik:", error);
-    }
-}
-
-function updateStatistikRealtime(listBarang) {
-    const sTotal = document.getElementById('sTotal');
-    const sLow = document.getElementById('sLow');
-    const sOut = document.getElementById('sOut');
-
-    const totalJenis = listBarang.length;
-    const listStokMenipis = listBarang.filter(b => Number(b.stok) > 0 && Number(b.stok) <= Number(b.min));
-    const listStokHabis = listBarang.filter(b => Number(b.stok) === 0);
-
-    if (sTotal) sTotal.textContent = totalJenis;
-    if (sLow) sLow.textContent = listStokMenipis.length;
-    if (sOut) sOut.textContent = listStokHabis.length;
-
-    const statLowCard = sLow?.closest('.stat');
-    const statOutCard = sOut?.closest('.stat');
-
-    if (statLowCard) {
-        statLowCard.style.cursor = 'pointer';
-        statLowCard.onclick = () => bukaModalAlerts('Stok Menipis (<= Batas Minimum)', listStokMenipis);
-    }
-
-    if (statOutCard) {
-        statOutCard.style.cursor = 'pointer';
-        statOutCard.onclick = () => bukaModalAlerts('Stok Habis (Jumlah 0)', listStokHabis);
-    }
-}
-
-function bukaModalAlerts(judul, items) {
-    const dAlerts = document.getElementById('dAlerts');
-    const tAlertsTitle = document.getElementById('tAlertsTitle');
-    const contentAlertsList = document.getElementById('contentAlertsList');
-
-    if (!dAlerts || !tAlertsTitle || !contentAlertsList) return;
-
-    tAlertsTitle.textContent = judul;
-
-    if (items.length === 0) {
-        contentAlertsList.innerHTML = '<p style="text-align: center; color: var(--text-sub); padding: 20px;">Tidak ada barang dalam daftar ini.</p>';
-        dAlerts.showModal();
-        return;
-    }
-
-    items.sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
-
-    let grouped = {};
-    items.forEach(item => {
-        let kat = item.kategori || 'FOOD';
-        if (!grouped[kat]) {
-            grouped[kat] = [];
-        }
-        grouped[kat].push(item);
-    });
-
-    let html = '';
-    for (let kat in grouped) {
-        let displayKat = kat;
-        if (kat.startsWith('FOOD - ')) {
-            let subFoodName = kat.replace('FOOD - ', '');
-            displayKat = `--- FOOD --- › ${subFoodName}`;
-        } else {
-            displayKat = `--- ${kat} ---`;
-        }
-
-        html += `
-            <div style="background: var(--bg-card); padding: 12px; border-radius: 8px; border-left: 3px solid #38bdf8; margin-bottom: 8px;">
-                <div style="font-weight: bold; color: #38bdf8; font-size: 13px; margin-bottom: 8px; letter-spacing: 0.5px;">${displayKat}</div>
-                <div style="display: flex; flex-direction: column; gap: 6px;">
-        `;
-
-        grouped[kat].forEach(b => {
-            html += `
-                <div style="display: flex; justify-content: space-between; font-size: 13px; background: var(--bg-main); padding: 6px 10px; border-radius: 6px; align-items: center;">
-                    <span style="color: var(--text-color);">• ${b.nama}</span>
-                    <strong style="color: ${b.stok === 0 ? '#ef4444' : '#f59e0b'};">${b.stok} ${b.satuan}</strong>
-                </div>
-            `;
-        });
-
-        html += `</div></div>`;
-    }
-
-    contentAlertsList.innerHTML = html;
-    dAlerts.showModal();
-}
+                        let diffDays
