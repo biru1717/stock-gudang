@@ -60,7 +60,8 @@ function initAuth() {
 let activeTab = 'stok';
 let activeKategoriFilter = 'Semua';
 let activeSubFoodFilter = 'Semua';
-let activeRiwayatFilter = 'Semua'; // Filter jenis riwayat transaksi
+let activeRiwayatFilter = 'Semua';
+let activeChartKatFilter = 'Semua'; // Filter khusus kategori histogram/diagram
 let tipeTrxModal = 'masuk';
 let selectedBarangEditId = null;
 let selectedRiwayatEditId = null;
@@ -447,6 +448,7 @@ function initApp() {
             activeKategoriFilter = 'Semua'; 
             activeSubFoodFilter = 'Semua';
             activeRiwayatFilter = 'Semua';
+            activeChartKatFilter = 'Semua';
             tampilkanData();
         });
     });
@@ -459,7 +461,7 @@ function initApp() {
     }
 }
 
-// --- 3. RENDER TOMBOL FILTER KATEGORI ---
+// --- 3. RENDER TOMBOL FILTER KATEGORI UTAMA ---
 async function renderFilterKategori() {
     const filtersContainer = document.getElementById('filters');
     if (!filtersContainer) return;
@@ -539,7 +541,13 @@ function setFilterRiwayat(tipeTrx) {
     tampilkanData(searchInput ? searchInput.value : '');
 }
 
-// --- 4. TAMPILKAN DATA & STATISTIK / DIAGRAM TERPISAH PER KATEGORI ---
+function setChartKatFilter(kat) {
+    activeChartKatFilter = kat;
+    const searchInput = document.getElementById('q');
+    tampilkanData(searchInput ? searchInput.value : '');
+}
+
+// --- 4. TAMPILKAN DATA & DIAGRAM DENGAN FILTER KATEGORI KHUSUS ---
 async function tampilkanData(keyword = '') {
     await renderFilterKategori();
     const main = document.getElementById('main');
@@ -566,8 +574,54 @@ async function tampilkanData(keyword = '') {
                 riwayatTrx.push({ id: docSnap.id, ...docSnap.data() });
             });
 
-            // Filter riwayat berdasarkan Kategori agar diagram otomatis terpisah sesuai kategori yang dipilih di atas
-            let riwayatSesuaiKategori = riwayatTrx.filter(trx => {
+            // Kumpulkan daftar kategori unik yang ada pada riwayat untuk tombol pilihan diagram
+            let availableCategories = new Set(['Semua']);
+            riwayatTrx.forEach(t => {
+                if (t.kategori) {
+                    let mainKat = t.kategori.split(' - ')[0];
+                    availableCategories.add(mainKat);
+                }
+            });
+
+            // Filter riwayat khusus untuk perhitungan & data Diagram berdasarkan pilihan tombol diagram
+            let riwayatUntukDiagram = riwayatTrx.filter(trx => {
+                let katTrx = trx.kategori || 'FOOD';
+                if (activeChartKatFilter === 'Semua') return true;
+                return katTrx.startsWith(activeChartKatFilter);
+            });
+
+            let listKeluar = riwayatUntukDiagram.filter(t => {
+                const tipe = (t.tipe || '').toLowerCase();
+                return tipe.includes('out') || tipe.includes('kurang') || tipe.includes('keluar') || tipe.includes('operasional');
+            });
+
+            let totalMasuk = riwayatUntukDiagram.filter(t => !listKeluar.includes(t) && t.tipe !== 'TAMBAH BARANG BARU').length;
+            let totalKeluar = listKeluar.length;
+
+            let statistikMap = {};
+            listKeluar.forEach(trx => {
+                let nama = trx.namaBarang || 'Lainnya';
+                let qty = Number(trx.jumlah) || 0;
+                if (!statistikMap[nama]) {
+                    statistikMap[nama] = 0;
+                }
+                statistikMap[nama] += qty;
+            });
+
+            let topBarangLabels = Object.keys(statistikMap);
+            let topBarangValues = Object.values(statistikMap);
+
+            // Render tombol pilihan kategori khusus untuk Diagram/Histogram
+            let chartFilterHtml = '<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; align-items: center;">';
+            availableCategories.forEach(kat => {
+                let isActive = activeChartKatFilter === kat;
+                let bgStyle = isActive ? 'background: #38bdf8; color: #0f172a; font-weight: bold;' : 'background: var(--bg-main); color: var(--text-sub); border: 1px solid var(--border-color);';
+                chartFilterHtml += `<button onclick="setChartKatFilter('${kat}')" style="border: none; padding: 4px 10px; border-radius: 15px; cursor: pointer; font-size: 11px; ${bgStyle}">${kat}</button>`;
+            });
+            chartFilterHtml += '</div>';
+
+            // Filter untuk Daftar Riwayat Transaksi di bawahnya (mengikuti filter kategori utama aplikasi)
+            let riwayatSesuaiKategoriUtama = riwayatTrx.filter(trx => {
                 let katTrx = trx.kategori || 'FOOD';
                 let matchKategori = false;
 
@@ -587,30 +641,7 @@ async function tampilkanData(keyword = '') {
                 return matchKategori;
             });
 
-            // Hitung data barang keluar khusus kategori aktif untuk Diagram
-            let listKeluar = riwayatSesuaiKategori.filter(t => {
-                const tipe = (t.tipe || '').toLowerCase();
-                return tipe.includes('out') || tipe.includes('kurang') || tipe.includes('keluar') || tipe.includes('operasional');
-            });
-
-            let totalMasuk = riwayatSesuaiKategori.filter(t => !listKeluar.includes(t) && t.tipe !== 'TAMBAH BARANG BARU').length;
-            let totalKeluar = listKeluar.length;
-
-            let statistikMap = {};
-            listKeluar.forEach(trx => {
-                let nama = trx.namaBarang || 'Lainnya';
-                let qty = Number(trx.jumlah) || 0;
-                if (!statistikMap[nama]) {
-                    statistikMap[nama] = 0;
-                }
-                statistikMap[nama] += qty;
-            });
-
-            let topBarangLabels = Object.keys(statistikMap);
-            let topBarangValues = Object.values(statistikMap);
-
-            // Filter pilihan jenis riwayat transaksi (Termasuk Transfer In & Transfer Out)
-            let filteredRiwayat = riwayatSesuaiKategori.filter(trx => {
+            let filteredRiwayat = riwayatSesuaiKategoriUtama.filter(trx => {
                 let matchKeyword = trx.namaBarang ? trx.namaBarang.toLowerCase().includes(keyword.toLowerCase()) : false;
                 let tipeTrx = (trx.tipe || '').toLowerCase();
                 let matchTipeRiwayat = true;
@@ -630,7 +661,6 @@ async function tampilkanData(keyword = '') {
                 return matchKeyword && matchTipeRiwayat;
             });
 
-            // Tombol Pilihan Jenis Riwayat Transaksi (Termasuk Transfer In & Out)
             let riwayatFilterBtns = [
                 { id: 'Semua', label: 'Semua' },
                 { id: 'Transfer In', label: 'Transfer In' },
@@ -650,10 +680,13 @@ async function tampilkanData(keyword = '') {
 
             let html = `
                 <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; margin-bottom: 20px; color: var(--text-color);">
-                    <h3 style="margin-bottom: 10px; font-size: 16px; color: #38bdf8;">📊 Statistik & Diagram Barang Keluar (${activeKategoriFilter === 'Semua' ? 'Semua Kategori' : activeKategoriFilter})</h3>
+                    <h3 style="margin-bottom: 10px; font-size: 16px; color: #38bdf8;">📊 Statistik & Diagram Barang Keluar</h3>
+                    <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">Pilih kategori untuk histogram:</p>
+                    ${chartFilterHtml}
+                    
                     <div style="display: flex; gap: 20px; font-size: 14px; margin-bottom: 15px;">
-                        <div>Total Transaksi Masuk: <b style="color: #10b981;">${totalMasuk}</b></div>
-                        <div>Total Transaksi Keluar: <b style="color: #ef4444;">${totalKeluar}</b></div>
+                        <div>Total Transaksi Masuk (${activeChartKatFilter}): <b style="color: #10b981;">${totalMasuk}</b></div>
+                        <div>Total Transaksi Keluar (${activeChartKatFilter}): <b style="color: #ef4444;">${totalKeluar}</b></div>
                     </div>
                     
                     <div style="position: relative; height: 250px; width: 100%;">
