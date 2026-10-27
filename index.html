@@ -6,6 +6,8 @@
 <title>Stok Barang</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<!-- 1. WAJIB ADA: Pustaka Chart.js untuk memunculkan diagram/histogram -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -57,7 +59,7 @@
   <main id="main"></main>
 </div>
 
-<!-- DIALOG TAMBAH BARANG (DENGAN KATEGORI FOOD & SUB-KATEGORI) -->
+<!-- DIALOG TAMBAH BARANG -->
 <dialog id="dItem">
   <form method="dialog" id="fItem">
     <h2 id="tItemT">Tambah barang</h2>
@@ -89,7 +91,6 @@
       <option value="ASSET 3">ASSET 3</option>
     </select>
 
-    <!-- BOX SUB-KATEGORI FOOD (Hanya muncul jika FOOD dipilih) -->
     <div id="boxSubFood" style="margin-bottom:12px;">
       <label for="iSubFood">Sub-Kategori Food</label>
       <select id="iSubFood" style="width:100%; padding:8px; border-radius:6px; background:var(--bg-main); color:var(--text-color); border:1px solid var(--border-color);">
@@ -119,7 +120,7 @@
   </form>
 </dialog>
 
-<!-- DIALOG EDIT STOK & TANGGAL KADALUWARSA & STATUS TITO -->
+<!-- DIALOG EDIT STOK -->
 <dialog id="dEdit">
   <form method="dialog" id="fEdit">
     <h2 id="tEditT">Edit Stok Barang</h2>
@@ -134,7 +135,6 @@
       <option value="Vendor">Vendor</option>
     </select>
 
-    <!-- PILIHAN STATUS TITO (Hanya muncul untuk Transfer In / Transfer Out) -->
     <div id="boxStatusTito" style="margin-bottom:12px;">
       <label for="eStatusTito">Status TITO</label>
       <select id="eStatusTito" style="width:100%; padding:8px; border-radius:6px; background:var(--bg-main); color:var(--text-color); border:1px solid var(--border-color);">
@@ -158,7 +158,6 @@
       </div>
     </div>
 
-    <!-- TAMBAHAN INPUT TANGGAL KADALUWARSA -->
     <div style="margin-top: 10px;">
       <label for="eExpired">Tanggal Kedaluwarsa (Opsional)</label>
       <input id="eExpired" type="date" style="width:100%; padding:8px; border-radius:6px; background:var(--bg-main); color:var(--text-color); border:1px solid var(--border-color); box-sizing: border-box;">
@@ -174,7 +173,7 @@
   </form>
 </dialog>
 
-<!-- DIALOG EDIT RIWAYAT (Khusus ubah Status TITO & Catatan dari Riwayat) -->
+<!-- DIALOG EDIT RIWAYAT -->
 <dialog id="dEditRiwayat">
   <form method="dialog" id="fEditRiwayat">
     <h2>Edit Status Transaksi</h2>
@@ -217,12 +216,10 @@
   <div class="foot"><button type="button" class="cancel">Batal</button><button class="danger" id="bDel">Hapus</button></div>
 </dialog>
 
-<!-- DIALOG DAFTAR STOK MENIPIS / HABIS (INTERAKTIF) -->
+<!-- DIALOG ALERTS -->
 <dialog id="dAlerts" style="background: var(--bg-card); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; width: 90%; max-width: 500px;">
   <h2 id="tAlertsTitle" style="color: #38bdf8; font-size: 18px; margin-bottom: 15px;">Daftar Barang</h2>
-  <div id="contentAlertsList" style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
-    <!-- Daftar barang per kategori akan dirender di sini secara dinamis -->
-  </div>
+  <div id="contentAlertsList" style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;"></div>
   <div class="foot" style="display: flex; justify-content: flex-end;">
     <button type="button" class="cancel" onclick="document.getElementById('dAlerts').close()" style="background: var(--border-color); color: var(--text-color); border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Tutup</button>
   </div>
@@ -230,7 +227,7 @@
 
 <div id="toast"></div>
 
-<!-- INISIALISASI FIREBASE CLOUD FIRESTORE -->
+<!-- INISIALISASI FIREBASE -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-analytics.js";
