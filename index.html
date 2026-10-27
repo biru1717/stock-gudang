@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>STOCKBARANG - Manajemen Stok</title>
-    <!-- CSS & Firebase SDK jika diperlukan -->
     <link rel="stylesheet" href="style.css">
     <!-- Chart.js untuk Diagram -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -58,7 +57,7 @@
 
     </div>
 
-    <!-- Modal Login (Jika belum login) -->
+    <!-- Modal Login -->
     <dialog id="dLogin">
         <form id="fLogin">
             <h3>Login Aplikasi Stok</h3>
@@ -91,7 +90,7 @@
                     <option value="FOOD">FOOD</option>
                     <option value="TOPPING">TOPPING</option>
                     <option value="SYRUP">SYRUP</option>
-                    <option value="POwdER">POWDER</option>
+                    <option value="POWDER">POWDER</option>
                     <option value="BEANS">BEANS</option>
                     <option value="DRINK">DRINK</option>
                     <option value="UTILITY">UTILITY</option>
@@ -180,7 +179,6 @@
                 <input type="date" id="eExpired" style="width: 100%; padding: 8px; margin-top: 4px;">
             </div>
 
-            <!-- ID boxDesc agar deskripsi otomatis disembunyikan untuk Operasional & Vendor -->
             <div id="boxDesc" style="margin-top: 10px;">
                 <label>Deskripsi / Catatan</label>
                 <input type="text" id="eDesc" placeholder="Contoh: Mutasi gudang" style="width: 100%; padding: 8px; margin-top: 4px;">
@@ -250,7 +248,7 @@
         </form>
     </dialog>
 
-    <!-- Modal Alert Stok Menipis / Habis (Solid / Tidak Transparan) -->
+    <!-- Modal Alert Stok Menipis / Habis -->
     <dialog id="dAlerts">
         <div style="padding: 20px; background: var(--bg-card); color: var(--text-color); border-radius: 12px; width: 400px; max-width: 90vw;">
             <h3 id="tAlertsTitle" style="color: #38bdf8; margin-bottom: 12px; font-size: 16px;">Daftar Stok</h3>
@@ -260,6 +258,47 @@
             </div>
         </div>
     </dialog>
+
+    <!-- INISIALISASI FIREBASE CLOUD FIRESTORE -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-analytics.js";
+      import {  
+        getFirestore, 
+        collection, 
+        addDoc, 
+        getDocs, 
+        getDoc,
+        updateDoc,
+        deleteDoc, 
+        doc,
+        onSnapshot 
+      } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyAf_k_MY54xL3HUNNcfu9PxGOJ7qiEOjJs",
+        authDomain: "stock-barang-9577f.firebaseapp.com",
+        projectId: "stock-barang-9577f",
+        storageBucket: "stock-barang-9577f.firebasestorage.app",
+        messagingSenderId: "640561152265",
+        appId: "1:640561152265:web:362541cc5acb355c62d3d8",
+        measurementId: "G-SCVG0J5635"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const analytics = getAnalytics(app);
+      const db = getFirestore(app);
+
+      window.db = db;
+      window.collection = collection;
+      window.addDoc = addDoc;
+      window.getDocs = getDocs;
+      window.getDoc = getDoc;
+      window.updateDoc = updateDoc;
+      window.deleteDoc = deleteDoc;
+      window.doc = doc;
+      window.onSnapshot = onSnapshot;
+    </script>
 
     <!-- Script Utama -->
     <script src="app.js"></script>
