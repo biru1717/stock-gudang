@@ -61,7 +61,8 @@ let activeTab = 'stok';
 let activeKategoriFilter = 'Semua';
 let activeSubFoodFilter = 'Semua';
 let activeRiwayatFilter = 'Semua';
-let activeChartKatFilter = 'Semua'; // Filter khusus kategori histogram/diagram
+let activeChartKatFilter = 'Semua';     // Filter kategori khusus diagram
+let activeChartTimeFilter = 'Semua';    // Filter waktu khusus diagram (Semua, Harian, Mingguan, Bulanan)
 let tipeTrxModal = 'masuk';
 let selectedBarangEditId = null;
 let selectedRiwayatEditId = null;
@@ -449,6 +450,7 @@ function initApp() {
             activeSubFoodFilter = 'Semua';
             activeRiwayatFilter = 'Semua';
             activeChartKatFilter = 'Semua';
+            activeChartTimeFilter = 'Semua';
             tampilkanData();
         });
     });
@@ -547,7 +549,13 @@ function setChartKatFilter(kat) {
     tampilkanData(searchInput ? searchInput.value : '');
 }
 
-// --- 4. TAMPILKAN DATA & DIAGRAM DENGAN FILTER KATEGORI KHUSUS ---
+function setChartTimeFilter(time) {
+    activeChartTimeFilter = time;
+    const searchInput = document.getElementById('q');
+    tampilkanData(searchInput ? searchInput.value : '');
+}
+
+// --- 4. TAMPILKAN DATA & DIAGRAM DENGAN FILTER KATEGORI & WAKTU KHUSUS ---
 async function tampilkanData(keyword = '') {
     await renderFilterKategori();
     const main = document.getElementById('main');
@@ -574,7 +582,7 @@ async function tampilkanData(keyword = '') {
                 riwayatTrx.push({ id: docSnap.id, ...docSnap.data() });
             });
 
-            // Kumpulkan daftar kategori unik yang ada pada riwayat untuk tombol pilihan diagram
+            // Kumpulkan kategori unik untuk tombol diagram
             let availableCategories = new Set(['Semua']);
             riwayatTrx.forEach(t => {
                 if (t.kategori) {
@@ -583,11 +591,30 @@ async function tampilkanData(keyword = '') {
                 }
             });
 
-            // Filter riwayat khusus untuk perhitungan & data Diagram berdasarkan pilihan tombol diagram
+            // Filter riwayat khusus untuk Diagram (berdasarkan Kategori & Waktu)
+            let now = new Date();
             let riwayatUntukDiagram = riwayatTrx.filter(trx => {
                 let katTrx = trx.kategori || 'FOOD';
-                if (activeChartKatFilter === 'Semua') return true;
-                return katTrx.startsWith(activeChartKatFilter);
+                let matchKat = (activeChartKatFilter === 'Semua') || katTrx.startsWith(activeChartKatFilter);
+                
+                let matchTime = true;
+                if (trx.createdAt) {
+                    let trxDate = new Date(trx.createdAt);
+                    if (activeChartTimeFilter === 'Harian') {
+                        matchTime = (trxDate.getDate() === now.getDate() &&
+                                     trxDate.getMonth() === now.getMonth() &&
+                                     trxDate.getFullYear() === now.getFullYear());
+                    } else if (activeChartTimeFilter === 'Mingguan') {
+                        let diffTime = now - trxDate;
+                        let diffDays = diffTime / (1000 * 60 * 60 * 24);
+                        matchTime = (diffDays >= 0 && diffDays <= 7);
+                    } else if (activeChartTimeFilter === 'Bulanan') {
+                        matchTime = (trxDate.getMonth() === now.getMonth() &&
+                                     trxDate.getFullYear() === now.getFullYear());
+                    }
+                }
+
+                return matchKat && matchTime;
             });
 
             let listKeluar = riwayatUntukDiagram.filter(t => {
@@ -611,8 +638,8 @@ async function tampilkanData(keyword = '') {
             let topBarangLabels = Object.keys(statistikMap);
             let topBarangValues = Object.values(statistikMap);
 
-            // Render tombol pilihan kategori khusus untuk Diagram/Histogram
-            let chartFilterHtml = '<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; align-items: center;">';
+            // HTML Tombol Filter Kategori Diagram
+            let chartFilterHtml = '<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; align-items: center;">';
             availableCategories.forEach(kat => {
                 let isActive = activeChartKatFilter === kat;
                 let bgStyle = isActive ? 'background: #38bdf8; color: #0f172a; font-weight: bold;' : 'background: var(--bg-main); color: var(--text-sub); border: 1px solid var(--border-color);';
@@ -620,7 +647,17 @@ async function tampilkanData(keyword = '') {
             });
             chartFilterHtml += '</div>';
 
-            // Filter untuk Daftar Riwayat Transaksi di bawahnya (mengikuti filter kategori utama aplikasi)
+            // HTML Tombol Filter Waktu Diagram (Harian, Mingguan, Bulanan, Semua)
+            let timeFilters = ['Semua', 'Harian', 'Mingguan', 'Bulanan'];
+            let timeFilterHtml = '<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; align-items: center;">';
+            timeFilters.forEach(t => {
+                let isActive = activeChartTimeFilter === t;
+                let bgStyle = isActive ? 'background: #10b981; color: white; font-weight: bold;' : 'background: var(--bg-main); color: var(--text-sub); border: 1px solid var(--border-color);';
+                timeFilterHtml += `<button onclick="setChartTimeFilter('${t}')" style="border: none; padding: 4px 10px; border-radius: 15px; cursor: pointer; font-size: 11px; ${bgStyle}">${t}</button>`;
+            });
+            timeFilterHtml += '</div>';
+
+            // Filter Daftar Riwayat Transaksi di Bawah (mengikuti filter kategori utama aplikasi)
             let riwayatSesuaiKategoriUtama = riwayatTrx.filter(trx => {
                 let katTrx = trx.kategori || 'FOOD';
                 let matchKategori = false;
@@ -681,12 +718,16 @@ async function tampilkanData(keyword = '') {
             let html = `
                 <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; margin-bottom: 20px; color: var(--text-color);">
                     <h3 style="margin-bottom: 10px; font-size: 16px; color: #38bdf8;">📊 Statistik & Diagram Barang Keluar</h3>
-                    <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">Pilih kategori untuk histogram:</p>
-                    ${chartFilterHtml}
                     
-                    <div style="display: flex; gap: 20px; font-size: 14px; margin-bottom: 15px;">
-                        <div>Total Transaksi Masuk (${activeChartKatFilter}): <b style="color: #10b981;">${totalMasuk}</b></div>
-                        <div>Total Transaksi Keluar (${activeChartKatFilter}): <b style="color: #ef4444;">${totalKeluar}</b></div>
+                    <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 6px;">Filter Kategori Diagram:</p>
+                    ${chartFilterHtml}
+
+                    <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 6px; margin-top: 10px;">Filter Rentang Waktu Diagram:</p>
+                    ${timeFilterHtml}
+                    
+                    <div style="display: flex; gap: 20px; font-size: 14px; margin-bottom: 15px; margin-top: 10px;">
+                        <div>Total Masuk (${activeChartKatFilter} / ${activeChartTimeFilter}): <b style="color: #10b981;">${totalMasuk}</b></div>
+                        <div>Total Keluar (${activeChartKatFilter} / ${activeChartTimeFilter}): <b style="color: #ef4444;">${totalKeluar}</b></div>
                     </div>
                     
                     <div style="position: relative; height: 250px; width: 100%;">
