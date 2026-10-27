@@ -60,6 +60,7 @@ function initAuth() {
 let activeTab = 'stok';
 let activeKategoriFilter = 'Semua';
 let activeSubFoodFilter = 'Semua';
+let activeRiwayatFilter = 'Semua'; // Filter jenis riwayat transaksi
 let tipeTrxModal = 'masuk';
 let selectedBarangEditId = null;
 let selectedRiwayatEditId = null;
@@ -318,7 +319,6 @@ function initApp() {
                     if (querySnapshot.empty) {
                         selectBarang.innerHTML = '<option value="">Belum ada barang</option>';
                     } else {
-                        // Urutkan abjad pada pilihan dropdown transaksi
                         let barangOpts = [];
                         querySnapshot.forEach(docSnap => {
                             barangOpts.push({ id: docSnap.id, ...docSnap.data() });
@@ -446,6 +446,7 @@ function initApp() {
             activeTab = btn.getAttribute('data-tab') || 'stok';
             activeKategoriFilter = 'Semua'; 
             activeSubFoodFilter = 'Semua';
+            activeRiwayatFilter = 'Semua';
             tampilkanData();
         });
     });
@@ -532,7 +533,13 @@ function setSubFoodFilter(sub) {
     tampilkanData(searchInput ? searchInput.value : '');
 }
 
-// --- 4. TAMPILKAN DATA & STATISTIK / DIAGRAM BARANG KELUAR ---
+function setFilterRiwayat(tipeTrx) {
+    activeRiwayatFilter = tipeTrx;
+    const searchInput = document.getElementById('q');
+    tampilkanData(searchInput ? searchInput.value : '');
+}
+
+// --- 4. TAMPILKAN DATA & STATISTIK / DIAGRAM TERPISAH PER KATEGORI ---
 async function tampilkanData(keyword = '') {
     await renderFilterKategori();
     const main = document.getElementById('main');
@@ -559,43 +566,8 @@ async function tampilkanData(keyword = '') {
                 riwayatTrx.push({ id: docSnap.id, ...docSnap.data() });
             });
 
-            let listKeluar = riwayatTrx.filter(t => {
-                const tipe = (t.tipe || '').toLowerCase();
-                return tipe.includes('out') || tipe.includes('kurang') || tipe.includes('keluar') || tipe.includes('operasional');
-            });
-
-            let totalMasuk = riwayatTrx.filter(t => !listKeluar.includes(t) && t.tipe !== 'TAMBAH BARANG BARU').length;
-            let totalKeluar = listKeluar.length;
-
-            let statistikMap = {};
-            listKeluar.forEach(trx => {
-                let nama = trx.namaBarang || 'Lainnya';
-                let qty = Number(trx.jumlah) || 0;
-                if (!statistikMap[nama]) {
-                    statistikMap[nama] = 0;
-                }
-                statistikMap[nama] += qty;
-            });
-
-            let topBarangLabels = Object.keys(statistikMap);
-            let topBarangValues = Object.values(statistikMap);
-
-            let html = `
-                <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; margin-bottom: 20px; color: var(--text-color);">
-                    <h3 style="margin-bottom: 10px; font-size: 16px; color: #38bdf8;">📊 Statistik & Diagram Barang Keluar</h3>
-                    <div style="display: flex; gap: 20px; font-size: 14px; margin-bottom: 15px;">
-                        <div>Total Transaksi Masuk: <b style="color: #10b981;">${totalMasuk}</b></div>
-                        <div>Total Transaksi Keluar: <b style="color: #ef4444;">${totalKeluar}</b></div>
-                    </div>
-                    
-                    <div style="position: relative; height: 250px; width: 100%;">
-                        <canvas id="chartBarangKeluar"></canvas>
-                    </div>
-                </div>
-            `;
-
-            let filteredRiwayat = riwayatTrx.filter(trx => {
-                let matchKeyword = trx.namaBarang ? trx.namaBarang.toLowerCase().includes(keyword.toLowerCase()) : false;
+            // Filter riwayat berdasarkan Kategori terlebih dahulu agar diagram sesuai kategori yang diklik
+            let riwayatSesuaiKategori = riwayatTrx.filter(trx => {
                 let katTrx = trx.kategori || 'FOOD';
                 let matchKategori = false;
 
@@ -612,17 +584,88 @@ async function tampilkanData(keyword = '') {
                 } else {
                     matchKategori = katTrx === activeKategoriFilter;
                 }
-
-                return matchKeyword && matchKategori;
+                return matchKategori;
             });
+
+            // Hitung data barang keluar khusus kategori yang aktif untuk Diagram
+            let listKeluar = riwayatSesuaiKategori.filter(t => {
+                const tipe = (t.tipe || '').toLowerCase();
+                return tipe.includes('out') || tipe.includes('kurang') || tipe.includes('keluar') || tipe.includes('operasional');
+            });
+
+            let totalMasuk = riwayatSesuaiKategori.filter(t => !listKeluar.includes(t) && t.tipe !== 'TAMBAH BARANG BARU').length;
+            let totalKeluar = listKeluar.length;
+
+            let statistikMap = {};
+            listKeluar.forEach(trx => {
+                let nama = trx.namaBarang || 'Lainnya';
+                let qty = Number(trx.jumlah) || 0;
+                if (!statistikMap[nama]) {
+                    statistikMap[nama] = 0;
+                }
+                statistikMap[nama] += qty;
+            });
+
+            let topBarangLabels = Object.keys(statistikMap);
+            let topBarangValues = Object.values(statistikMap);
+
+            // Filter pilihan jenis riwayat transaksi (Semua, Masuk, Keluar, dll)
+            let filteredRiwayat = riwayatSesuaiKategori.filter(trx => {
+                let matchKeyword = trx.namaBarang ? trx.namaBarang.toLowerCase().includes(keyword.toLowerCase()) : false;
+                
+                let isTrxKeluar = (trx.tipe || '').toLowerCase().includes('out') || (trx.tipe || '').toLowerCase().includes('kurang') || (trx.tipe || '').toLowerCase().includes('keluar') || (trx.tipe || '').toLowerCase().includes('operasional');
+                let matchTipeRiwayat = true;
+
+                if (activeRiwayatFilter === 'Masuk') {
+                    matchTipeRiwayat = !isTrxKeluar && trx.tipe !== 'TAMBAH BARANG BARU';
+                } else if (activeRiwayatFilter === 'Keluar') {
+                    matchTipeRiwayat = isTrxKeluar;
+                } else if (activeRiwayatFilter === 'Baru') {
+                    matchTipeRiwayat = trx.tipe === 'TAMBAH BARANG BARU';
+                }
+
+                return matchKeyword && matchTipeRiwayat;
+            });
+
+            // Tombol Pilihan Jenis Riwayat Transaksi
+            let riwayatFilterBtns = [
+                { id: 'Semua', label: 'Semua Riwayat' },
+                { id: 'Masuk', label: 'Barang Masuk / Restock' },
+                { id: 'Keluar', label: 'Barang Keluar / Operasional' },
+                { id: 'Baru', label: 'Barang Baru' }
+            ];
+
+            let filterRiwayatHtml = '<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px;">';
+            riwayatFilterBtns.forEach(btn => {
+                let isActive = activeRiwayatFilter === btn.id;
+                let btnStyle = isActive ? 'background: #3b82f6; color: white; font-weight: bold;' : 'background: var(--bg-card); color: var(--text-sub);';
+                filterRiwayatHtml += `<button onclick="setFilterRiwayat('${btn.id}')" style="border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; ${btnStyle}">${btn.label}</button>`;
+            });
+            filterRiwayatHtml += '</div>';
+
+            let html = `
+                <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; margin-bottom: 20px; color: var(--text-color);">
+                    <h3 style="margin-bottom: 10px; font-size: 16px; color: #38bdf8;">📊 Statistik & Diagram Barang Keluar (${activeKategoriFilter === 'Semua' ? 'Semua Kategori' : activeKategoriFilter})</h3>
+                    <div style="display: flex; gap: 20px; font-size: 14px; margin-bottom: 15px;">
+                        <div>Total Transaksi Masuk: <b style="color: #10b981;">${totalMasuk}</b></div>
+                        <div>Total Transaksi Keluar: <b style="color: #ef4444;">${totalKeluar}</b></div>
+                    </div>
+                    
+                    <div style="position: relative; height: 250px; width: 100%;">
+                        <canvas id="chartBarangKeluar"></canvas>
+                    </div>
+                </div>
+
+                <h3 style="margin-bottom: 10px; font-size: 15px; color: var(--text-color);">Daftar Riwayat Transaksi</h3>
+                ${filterRiwayatHtml}
+            `;
 
             if (filteredRiwayat.length === 0) {
                 html += `
                     <div style="text-align: center; color: var(--text-sub); padding: 40px; background: var(--bg-card); border-radius: 12px;">
-                        <p>Belum ada riwayat transaksi pada kategori ini.</p>
+                        <p>Belum ada riwayat transaksi dengan filter ini.</p>
                     </div>`;
             } else {
-                html += '<h3 style="margin-bottom: 10px; font-size: 15px; color: var(--text-color);">Daftar Riwayat Transaksi</h3>';
                 html += '<div style="display: flex; flex-direction: column; gap: 10px;">';
                 filteredRiwayat.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
                 
@@ -701,7 +744,7 @@ async function tampilkanData(keyword = '') {
     }
 }
 
-// --- FUNGSI BANTUAN RENDER TAB STOK (DIURUTKAN SESUAI ABJAD A-Z) ---
+// --- FUNGSI BANTUAN RENDER TAB STOK ---
 function renderStokView(listBarang, keyword, main) {
     let filtered = listBarang.filter(item => {
         let matchKeyword = item.nama ? item.nama.toLowerCase().includes(keyword.toLowerCase()) : false;
@@ -725,7 +768,6 @@ function renderStokView(listBarang, keyword, main) {
         return matchKeyword && matchKategori;
     });
 
-    // Urutkan daftar barang berdasarkan nama secara abjad (A - Z)
     filtered.sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
 
     if (filtered.length === 0) {
@@ -927,7 +969,7 @@ function updateStatistikRealtime(listBarang) {
     }
 }
 
-// --- 9. FUNGSI POP-UP ALERT (TAMPILAN TIDAK TRANSPARAN / SOLID) ---
+// --- 9. FUNGSI POP-UP ALERT ---
 function bukaModalAlerts(judul, items) {
     const dAlerts = document.getElementById('dAlerts');
     const tAlertsTitle = document.getElementById('tAlertsTitle');
@@ -943,7 +985,6 @@ function bukaModalAlerts(judul, items) {
         return;
     }
 
-    // Urutkan item berdasarkan abjad juga di dalam popup alert
     items.sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
 
     let grouped = {};
@@ -965,7 +1006,6 @@ function bukaModalAlerts(judul, items) {
             displayKat = `--- ${kat} ---`;
         }
 
-        // Menggunakan var(--bg-card) agar tampil solid dan tidak transparan
         html += `
             <div style="background: var(--bg-card); padding: 12px; border-radius: 8px; border-left: 3px solid #38bdf8; margin-bottom: 8px;">
                 <div style="font-weight: bold; color: #38bdf8; font-size: 13px; margin-bottom: 8px; letter-spacing: 0.5px;">${displayKat}</div>
