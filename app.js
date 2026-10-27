@@ -566,7 +566,7 @@ async function tampilkanData(keyword = '') {
                 riwayatTrx.push({ id: docSnap.id, ...docSnap.data() });
             });
 
-            // Filter riwayat berdasarkan Kategori terlebih dahulu agar diagram sesuai kategori yang diklik
+            // Filter riwayat berdasarkan Kategori agar diagram otomatis terpisah sesuai kategori yang dipilih di atas
             let riwayatSesuaiKategori = riwayatTrx.filter(trx => {
                 let katTrx = trx.kategori || 'FOOD';
                 let matchKategori = false;
@@ -587,7 +587,7 @@ async function tampilkanData(keyword = '') {
                 return matchKategori;
             });
 
-            // Hitung data barang keluar khusus kategori yang aktif untuk Diagram
+            // Hitung data barang keluar khusus kategori aktif untuk Diagram
             let listKeluar = riwayatSesuaiKategori.filter(t => {
                 const tipe = (t.tipe || '').toLowerCase();
                 return tipe.includes('out') || tipe.includes('kurang') || tipe.includes('keluar') || tipe.includes('operasional');
@@ -609,17 +609,20 @@ async function tampilkanData(keyword = '') {
             let topBarangLabels = Object.keys(statistikMap);
             let topBarangValues = Object.values(statistikMap);
 
-            // Filter pilihan jenis riwayat transaksi (Semua, Masuk, Keluar, dll)
+            // Filter pilihan jenis riwayat transaksi (Termasuk Transfer In & Transfer Out)
             let filteredRiwayat = riwayatSesuaiKategori.filter(trx => {
                 let matchKeyword = trx.namaBarang ? trx.namaBarang.toLowerCase().includes(keyword.toLowerCase()) : false;
-                
-                let isTrxKeluar = (trx.tipe || '').toLowerCase().includes('out') || (trx.tipe || '').toLowerCase().includes('kurang') || (trx.tipe || '').toLowerCase().includes('keluar') || (trx.tipe || '').toLowerCase().includes('operasional');
+                let tipeTrx = (trx.tipe || '').toLowerCase();
                 let matchTipeRiwayat = true;
 
-                if (activeRiwayatFilter === 'Masuk') {
-                    matchTipeRiwayat = !isTrxKeluar && trx.tipe !== 'TAMBAH BARANG BARU';
+                if (activeRiwayatFilter === 'Transfer In') {
+                    matchTipeRiwayat = tipeTrx.includes('transfer in');
+                } else if (activeRiwayatFilter === 'Transfer Out') {
+                    matchTipeRiwayat = tipeTrx.includes('transfer out');
+                } else if (activeRiwayatFilter === 'Masuk') {
+                    matchTipeRiwayat = (tipeTrx.includes('masuk') || tipeTrx.includes('restock')) && !tipeTrx.includes('transfer in');
                 } else if (activeRiwayatFilter === 'Keluar') {
-                    matchTipeRiwayat = isTrxKeluar;
+                    matchTipeRiwayat = (tipeTrx.includes('keluar') || tipeTrx.includes('kurang') || tipeTrx.includes('operasional')) && !tipeTrx.includes('transfer out');
                 } else if (activeRiwayatFilter === 'Baru') {
                     matchTipeRiwayat = trx.tipe === 'TAMBAH BARANG BARU';
                 }
@@ -627,11 +630,13 @@ async function tampilkanData(keyword = '') {
                 return matchKeyword && matchTipeRiwayat;
             });
 
-            // Tombol Pilihan Jenis Riwayat Transaksi
+            // Tombol Pilihan Jenis Riwayat Transaksi (Termasuk Transfer In & Out)
             let riwayatFilterBtns = [
-                { id: 'Semua', label: 'Semua Riwayat' },
-                { id: 'Masuk', label: 'Barang Masuk / Restock' },
-                { id: 'Keluar', label: 'Barang Keluar / Operasional' },
+                { id: 'Semua', label: 'Semua' },
+                { id: 'Transfer In', label: 'Transfer In' },
+                { id: 'Transfer Out', label: 'Transfer Out' },
+                { id: 'Masuk', label: 'Masuk / Restock' },
+                { id: 'Keluar', label: 'Keluar / Operasional' },
                 { id: 'Baru', label: 'Barang Baru' }
             ];
 
