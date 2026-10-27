@@ -11,7 +11,7 @@ function initTheme() {
     
     document.documentElement.setAttribute('data-theme', currentTheme);
     if (btnTheme) {
-        btnTheme.textContent = currentTheme === 'dark' ? '☀️ Light' : '🌙 Dark';
+        btnTheme.textContent = currentTheme === 'dark' ? '☀️ Terang' : '🌙 Mode';
     }
 
     if (btnTheme) {
@@ -21,7 +21,7 @@ function initTheme() {
             
             document.documentElement.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
-            btnTheme.textContent = newTheme === 'dark' ? '☀️ Light' : '🌙 Dark';
+            btnTheme.textContent = newTheme === 'dark' ? '☀️ Terang' : '🌙 Mode';
         });
     }
 }
@@ -66,6 +66,15 @@ let activeChartTimeFilter = 'Semua';    // Filter waktu khusus diagram
 let tipeTrxModal = 'masuk';
 let selectedBarangEditId = null;
 let selectedRiwayatEditId = null;
+let itemToDeleteId = null;
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.className = 'show';
+    setTimeout(() => { t.className = ''; }, 3000);
+}
 
 // --- 2. INISIALISASI UTAMA & EVENT LISTENERS ---
 function initApp() {
@@ -76,6 +85,7 @@ function initApp() {
     const boxSubFood = document.getElementById('boxSubFood');
 
     if (selectKategori && boxSubFood) {
+        boxSubFood.style.display = selectKategori.value === 'FOOD' ? 'block' : 'none';
         selectKategori.addEventListener('change', () => {
             boxSubFood.style.display = selectKategori.value === 'FOOD' ? 'block' : 'none';
         });
@@ -147,12 +157,13 @@ function initApp() {
                     createdAt: new Date().toISOString()
                 });
 
+                showToast('Barang berhasil ditambahkan!');
                 tampilkanData();
                 updateStatistik();
                 dItem.close();
             } catch (error) {
-                console.error("Gagal menambah barang ke Firebase:", error);
-                alert("Terjadi kesalahan saat menyimpan data ke cloud.");
+                console.error("Gagal menambah barang:", error);
+                alert("Terjadi kesalahan saat menyimpan data.");
             }
         });
     }
@@ -166,8 +177,9 @@ function initApp() {
 
     if (eOpsi) {
         eOpsi.addEventListener('change', () => {
-            if (boxAksiVendor) boxAksiVendor.style.display = eOpsi.value === 'Vendor' ? 'block' : 'none';
-            if (boxStatusTito) boxStatusTito.style.display = (eOpsi.value === 'Transfer In' || eOpsi.value === 'Transfer Out') ? 'block' : 'none';
+            const val = eOpsi.value;
+            if (boxAksiVendor) boxAksiVendor.style.display = val === 'Vendor' ? 'block' : 'none';
+            if (boxStatusTito) boxStatusTito.style.display = (val === 'Transfer In' || val === 'Transfer Out') ? 'block' : 'none';
         });
     }
 
@@ -178,7 +190,7 @@ function initApp() {
         }
     }
 
-    // Submit Edit Stok & Simpan Status TITO ke Riwayat
+    // Submit Edit Stok
     if (fEdit) {
         fEdit.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -255,16 +267,17 @@ function initApp() {
                     jumlah: qty,
                     satuan: barangData.satuan,
                     statusTito: statusTitoFinal,
-                    catatan: `${desc} ${expiredDate !== '-' ? '(Exp: ' + expiredDate + ')' : ''}`,
+                    catatan: `${desc} ${expiredDate !== '-' ? '(Exp: ' + expiredDate + ')' : ''}`.trim(),
                     tanggal: new Date().toLocaleString('id-ID'),
                     createdAt: new Date().toISOString()
                 });
 
+                showToast('Stok berhasil diperbarui!');
                 tampilkanData();
                 updateStatistik();
                 dEdit.close();
             } catch (error) {
-                console.error("Gagal memperbarui stok di Firebase:", error);
+                console.error("Gagal memperbarui stok:", error);
                 alert("Terjadi kesalahan saat memperbarui data.");
             }
         });
@@ -294,6 +307,7 @@ function initApp() {
                     catatan: rCatatan
                 });
 
+                showToast('Riwayat berhasil diperbarui!');
                 tampilkanData();
                 dEditRiwayat.close();
             } catch (error) {
@@ -429,6 +443,7 @@ function initApp() {
                     createdAt: new Date().toISOString()
                 });
 
+                showToast('Transaksi berhasil dicatat!');
                 tampilkanData();
                 updateStatistik();
                 dTrx.close();
@@ -437,6 +452,30 @@ function initApp() {
                 alert("Terjadi kesalahan saat memproses transaksi.");
             }
         });
+    }
+
+    // Modal Konfirmasi Hapus
+    const dDel = document.getElementById('dDel');
+    if (dDel) {
+        const btnBatalDel = dDel.querySelector('.cancel');
+        if (btnBatalDel) btnBatalDel.addEventListener('click', () => dDel.close());
+
+        const bDel = document.getElementById('bDel');
+        if (bDel) {
+            bDel.onclick = async () => {
+                if (!itemToDeleteId) return;
+                try {
+                    await window.deleteDoc(window.doc(window.db, "stok_barang", itemToDeleteId));
+                    showToast('Barang berhasil dihapus.');
+                    dDel.close();
+                    tampilkanData();
+                    updateStatistik();
+                } catch (error) {
+                    console.error("Gagal menghapus barang:", error);
+                    alert("Gagal menghapus barang.");
+                }
+            };
+        }
     }
 
     const tabButtons = document.querySelectorAll('#tabs button');
@@ -716,7 +755,7 @@ async function tampilkanData(keyword = '') {
             filterRiwayatHtml += '</div>';
 
             let html = `
-                <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; margin-bottom: 20px; color: var(--text-color);">
+                <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; margin-bottom: 20px; color: var(--text-color); border: 1px solid var(--border-color);">
                     <h3 style="margin-bottom: 10px; font-size: 16px; color: #38bdf8;">📊 Statistik & Diagram Barang Keluar</h3>
                     
                     <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 6px;">Filter Kategori Diagram:</p>
@@ -741,7 +780,7 @@ async function tampilkanData(keyword = '') {
 
             if (filteredRiwayat.length === 0) {
                 html += `
-                    <div style="text-align: center; color: var(--text-sub); padding: 40px; background: var(--bg-card); border-radius: 12px;">
+                    <div style="text-align: center; color: var(--text-sub); padding: 40px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color);">
                         <p>Belum ada riwayat transaksi dengan filter ini.</p>
                     </div>`;
             } else {
@@ -765,7 +804,7 @@ async function tampilkanData(keyword = '') {
                     }
 
                     html += `
-                        <div style="background: var(--bg-card); padding: 14px 18px; border-radius: 8px; color: var(--text-color); display: flex; justify-content: space-between; align-items: center;">
+                        <div style="background: var(--bg-card); padding: 14px 18px; border-radius: 8px; border: 1px solid var(--border-color); color: var(--text-color); display: flex; justify-content: space-between; align-items: center;">
                             <div>
                                 <div style="font-weight: 600; display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
                                     <span style="color: ${color}; font-weight: bold;">[${trx.tipe}]</span> 
@@ -852,7 +891,7 @@ function renderStokView(listBarang, keyword, main) {
 
     if (filtered.length === 0) {
         main.innerHTML = `
-            <div style="text-align: center; color: var(--text-sub); padding: 40px; background: var(--bg-card); border-radius: 12px; margin-top: 10px;">
+            <div style="text-align: center; color: var(--text-sub); padding: 40px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); margin-top: 10px;">
                 <p>Belum ada barang pada kategori ini.</p>
             </div>`;
         return;
@@ -864,7 +903,7 @@ function renderStokView(listBarang, keyword, main) {
         if (item.stok === 0) statusWarna = '#ef4444';
 
         html += `
-            <div style="background: var(--bg-card); padding: 16px 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; color: var(--text-color);">
+            <div style="background: var(--bg-card); padding: 16px 20px; border-radius: 10px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; color: var(--text-color);">
                 <div>
                     <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
                         <strong style="font-size: 16px;">${item.nama}</strong>
@@ -881,7 +920,7 @@ function renderStokView(listBarang, keyword, main) {
                     <button onclick="bukaModalEdit('${item.id}')" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 500;">Edit</button>
                     <button onclick="ubahStokQuick('${item.id}', -1)" title="Kurangi Stok" style="background: var(--border-color); color: var(--text-color); border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">-</button>
                     <button onclick="ubahStokQuick('${item.id}', 1)" title="Tambah Stok" style="background: var(--border-color); color: var(--text-color); border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">+</button>
-                    <button onclick="hapusBarang('${item.id}')" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Hapus</button>
+                    <button onclick="konfirmasiHapus('${item.id}', '${item.nama}')" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Hapus</button>
                 </div>
             </div>
         `;
@@ -989,6 +1028,7 @@ async function ubahStokQuick(id, delta) {
             createdAt: new Date().toISOString()
         });
 
+        showToast('Stok berhasil diubah.');
         tampilkanData();
         updateStatistik();
     } catch (error) {
@@ -997,16 +1037,12 @@ async function ubahStokQuick(id, delta) {
     }
 }
 
-async function hapusBarang(id) {
-    if (!confirm('Yakin ingin menghapus barang ini?')) return;
-    try {
-        await window.deleteDoc(window.doc(window.db, "stok_barang", id));
-        tampilkanData();
-        updateStatistik();
-    } catch (error) {
-        console.error("Gagal menghapus barang:", error);
-        alert("Terjadi kesalahan saat menghapus barang.");
-    }
+function konfirmasiHapus(id, nama) {
+    itemToDeleteId = id;
+    const dDel = document.getElementById('dDel');
+    const pDel = document.getElementById('pDel');
+    if (pDel) pDel.textContent = `Apakah Anda yakin ingin menghapus barang "${nama}" dari daftar stok?`;
+    if (dDel) dDel.showModal();
 }
 
 async function updateStatistik() {
@@ -1086,14 +1122,14 @@ function bukaModalAlerts(judul, items) {
         }
 
         html += `
-            <div style="background: var(--bg-card); padding: 12px; border-radius: 8px; border-left: 3px solid #38bdf8; margin-bottom: 8px;">
+            <div style="background: var(--bg-main); padding: 12px; border-radius: 8px; border-left: 3px solid #38bdf8; margin-bottom: 8px;">
                 <div style="font-weight: bold; color: #38bdf8; font-size: 13px; margin-bottom: 8px; letter-spacing: 0.5px;">${displayKat}</div>
                 <div style="display: flex; flex-direction: column; gap: 6px;">
         `;
 
         grouped[kat].forEach(b => {
             html += `
-                <div style="display: flex; justify-content: space-between; font-size: 13px; background: var(--bg-main); padding: 6px 10px; border-radius: 6px; align-items: center;">
+                <div style="display: flex; justify-content: space-between; font-size: 13px; background: var(--bg-card); padding: 6px 10px; border-radius: 6px; align-items: center; border: 1px solid var(--border-color);">
                     <span style="color: var(--text-color);">• ${b.nama}</span>
                     <strong style="color: ${b.stok === 0 ? '#ef4444' : '#f59e0b'};">${b.stok} ${b.satuan}</strong>
                 </div>
