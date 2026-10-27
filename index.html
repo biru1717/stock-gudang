@@ -1,278 +1,267 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Stok Barang</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
-<!-- Chart.js untuk Diagram Statistik -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STOCKBARANG - Manajemen Stok</title>
+    <!-- CSS & Firebase SDK jika diperlukan -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Chart.js untuk Diagram -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+    <!-- Container Utama Aplikasi -->
+    <div class="app-container">
+        
+        <!-- Header / Navigasi Atas -->
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1>📦 STOCKBARANG</h1>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button id="btnTheme" style="padding: 6px 12px; border-radius: 6px; cursor: pointer;">☀️ Light</button>
+                <button id="btnTrx" style="background: #10b981; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold;">+ Catat Transaksi</button>
+                <button id="btnAdd" style="background: #38bdf8; color: #0f172a; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold;">+ Tambah Barang</button>
+            </div>
+        </header>
 
-<!-- MODAL / HALAMAN LOGIN -->
-<div id="dLogin" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-main, #0f172a); display: flex; justify-content: center; align-items: center; z-index: 9999;">
-  <div style="background: var(--bg-card, #1e293b); padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; border: 1px solid var(--border-color, #334155); color: var(--text-color, white);">
-    <h2 style="margin-bottom: 20px; color: #38bdf8; text-align: center;">Login Stok Gudang</h2>
-    
-    <form id="fLogin">
-      <label for="uName" style="display: block; margin-bottom: 6px; font-size: 14px;">Username</label>
-      <input id="uName" type="text" required placeholder="Masukkan username" style="width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 6px; background: var(--bg-main, #0f172a); color: var(--text-color, white); border: 1px solid var(--border-color, #334155); box-sizing: border-box;">
-      
-      <label for="uPass" style="display: block; margin-bottom: 6px; font-size: 14px;">Password</label>
-      <input id="uPass" type="password" required placeholder="Masukkan password" style="width: 100%; padding: 10px; margin-bottom: 20px; border-radius: 6px; background: var(--bg-main, #0f172a); color: var(--text-color, white); border: 1px solid var(--border-color, #334155); box-sizing: border-box;">
-      
-      <button type="submit" style="width: 100%; background: #38bdf8; color: #0f172a; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Masuk</button>
-      <p id="loginError" style="color: #ef4444; font-size: 12px; text-align: center; margin-top: 10px; display: none;">Username atau password salah!</p>
-    </form>
-  </div>
-</div>
+        <!-- Kotak Statistik Atas -->
+        <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+            <div class="stat" style="background: var(--bg-card); padding: 15px; border-radius: 8px; flex: 1;">
+                <div style="font-size: 12px; color: var(--text-sub);">Total Jenis Barang</div>
+                <div id="sTotal" style="font-size: 20px; font-weight: bold; color: var(--text-color);">0</div>
+            </div>
+            <div class="stat" style="background: var(--bg-card); padding: 15px; border-radius: 8px; flex: 1;">
+                <div style="font-size: 12px; color: var(--text-sub);">Stok Menipis</div>
+                <div id="sLow" style="font-size: 20px; font-weight: bold; color: #f59e0b;">0</div>
+            </div>
+            <div class="stat" style="background: var(--bg-card); padding: 15px; border-radius: 8px; flex: 1;">
+                <div style="font-size: 12px; color: var(--text-sub);">Stok Habis</div>
+                <div id="sOut" style="font-size: 20px; font-weight: bold; color: #ef4444;">0</div>
+            </div>
+        </div>
 
-<div class="wrap">
-  <header class="top">
-    <div class="brand">
-      <span class="logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></span>
-      <div><h1>Stok Barang Fore</h1><p class="sub">Kalo ambil barang langsung kurangin ya teman-teman tercinta ku</p></div>
-    </div>
-    <div class="hact">
-      <button id="btnTheme" title="Ganti Tema" style="background: var(--bg-card); color: var(--text-color); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; cursor: pointer;">🌙 Mode</button>
-      <button id="btnAdd">Tambah barang</button>
-      <button class="primary" id="btnTrx">Catat transaksi</button>
-    </div>
-  </header>
+        <!-- Tab Navigasi & Pencarian -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+            <div id="tabs" style="display: flex; gap: 8px;">
+                <button data-tab="stok" class="on" style="padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold;">Stok</button>
+                <button data-tab="riwayat" style="padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold;">Riwayat</button>
+            </div>
+            <div>
+                <input type="text" id="q" placeholder="Cari nama barang..." style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-color); width: 220px;">
+            </div>
+        </div>
 
-  <section class="stats" aria-label="Ringkasan">
-    <div class="stat"><span>Jenis barang</span><b id="sTotal">0</b></div>
-    <div class="stat w"><span>Stok menipis</span><b id="sLow">0</b></div>
-    <div class="stat d"><span>Stok habis</span><b id="sOut">0</b></div>
-  </section>
+        <!-- Filter Kategori -->
+        <div id="filters"></div>
 
-  <div id="alerts" role="status"></div>
+        <!-- Konten Utama (Dinamis dari app.js) -->
+        <main id="main"></main>
 
-  <div class="tools">
-    <div class="seg" id="tabs" role="tablist"><button class="on" data-tab="stok" role="tab">Stok</button><button data-tab="riwayat" role="tab">Riwayat</button></div>
-    <input class="search" type="search" id="q" placeholder="Cari nama barang" aria-label="Cari barang">
-  </div>
-  <div class="filters"><div class="seg" id="filters"></div></div>
-
-  <main id="main"></main>
-</div>
-
-<!-- DIALOG TAMBAH BARANG (DENGAN KATEGORI FOOD & SUB-KATEGORI) -->
-<dialog id="dItem">
-  <form method="dialog" id="fItem">
-    <h2 id="tItemT">Tambah barang</h2>
-    
-    <label for="iNama">Nama barang</label>
-    <input id="iNama" required maxlength="60" placeholder="Contoh: Kertas A4">
-    
-    <label for="iKategori">Kategori</label>
-    <select id="iKategori" required style="width:100%; padding:8px; margin-bottom:12px; border-radius:6px; background:var(--bg-main); color:var(--text-color); border:1px solid var(--border-color);">
-      <option value="FOOD">FOOD</option>
-      <option value="SYRUP">SYRUP</option>
-      <option value="SAUCE">SAUCE</option>
-      <option value="BEANS">BEANS</option>
-      <option value="TOPPING">TOPPING</option>
-      <option value="DAIRY">DAIRY</option>
-      <option value="POWDER">POWDER</option>
-      <option value="DRINK">DRINK</option>
-      <option value="SEASONAL">SEASONAL</option>
-      <option value="CUP & LID">CUP & LID</option>
-      <option value="TEA">TEA</option>
-      <option value="UTILITY">UTILITY</option>
-      <option value="UTILITY FOOD">UTILITY FOOD</option>
-      <option value="PLASTIC">PLASTIC</option>
-      <option value="THERMAL">THERMAL</option>
-      <option value="STICKER">STICKER</option>
-      <option value="CLEANLINESS">CLEANLINESS</option>
-      <option value="ASSET 1">ASSET 1</option>
-      <option value="ASSET 2">ASSET 2</option>
-      <option value="ASSET 3">ASSET 3</option>
-    </select>
-
-    <!-- BOX SUB-KATEGORI FOOD (Hanya muncul jika FOOD dipilih) -->
-    <div id="boxSubFood" style="margin-bottom:12px;">
-      <label for="iSubFood">Sub-Kategori Food</label>
-      <select id="iSubFood" style="width:100%; padding:8px; border-radius:6px; background:var(--bg-main); color:var(--text-color); border:1px solid var(--border-color);">
-        <option value="SANDWICH">SANDWICH</option>
-        <option value="POUND CAKE">POUND CAKE</option>
-        <option value="PASTRY">PASTRY</option>
-        <option value="ROLL CAKE">ROLL CAKE</option>
-      </select>
     </div>
 
-    <label for="iDesc">Deskripsi (opsional)</label>
-    <input id="iDesc" maxlength="100" placeholder="Contoh: Gudang utama lantai 2">
-    
-    <div class="row">
-      <div><label for="iStok">Stok awal</label><input id="iStok" type="number" min="0" value="0" required></div>
-      <div><label for="iSatuan">Satuan</label><input id="iSatuan" value="pcs" required maxlength="12"></div>
-    </div>
-    
-    <label for="iMin">Batas minimum stok</label>
-    <input id="iMin" type="number" min="0" value="5" required>
-    <p class="hint">Peringatan muncul saat stok sama dengan atau di bawah angka ini.</p>
-    
-    <div class="foot" style="margin-top:15px; display:flex; justify-content:flex-end; gap:8px;">
-      <button type="button" class="cancel">Batal</button>
-      <button class="primary" type="submit">Simpan</button>
-    </div>
-  </form>
-</dialog>
+    <!-- Modal Login (Jika belum login) -->
+    <dialog id="dLogin">
+        <form id="fLogin">
+            <h3>Login Aplikasi Stok</h3>
+            <div style="margin-top: 10px;">
+                <label>Username</label>
+                <input type="text" id="uName" required style="width: 100%; padding: 8px; margin-top: 4px;">
+            </div>
+            <div style="margin-top: 10px;">
+                <label>Password</label>
+                <input type="password" id="uPass" required style="width: 100%; padding: 8px; margin-top: 4px;">
+            </div>
+            <p id="loginError" style="color: #ef4444; font-size: 12px; display: none; margin-top: 6px;">Username atau password salah!</p>
+            <div style="margin-top: 20px; text-align: right;">
+                <button type="submit" style="padding: 8px 16px; background: #38bdf8; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Login</button>
+            </div>
+        </form>
+    </dialog>
 
-<!-- DIALOG EDIT STOK & TANGGAL KADALUWARSA & STATUS TITO -->
-<dialog id="dEdit">
-  <form method="dialog" id="fEdit">
-    <h2 id="tEditT">Edit Stok Barang</h2>
-    <p id="pEditNama" style="color: #38bdf8; font-weight: 600; margin-bottom: 12px;"></p>
-    
-    <label for="eOpsi">Opsi Transaksi</label>
-    <select id="eOpsi" required style="width:100%; padding:8px; margin-bottom:12px; border-radius:6px; background:var(--bg-main); color:var(--text-color); border:1px solid var(--border-color);">
-      <option value="Transfer In">Transfer In (Tambah Stok)</option>
-      <option value="Transfer Out">Transfer Out (Kurang Stok)</option>
-      <option value="Restock">Restock (+)</option>
-      <option value="Kebutuhan Operasional">Kebutuhan Operasional (-)</option>
-      <option value="Vendor">Vendor</option>
-    </select>
+    <!-- Modal Tambah Barang Baru -->
+    <dialog id="dItem">
+        <form id="fItem">
+            <h3 id="tItemT">Tambah barang</h3>
+            <div style="margin-top: 10px;">
+                <label>Nama Barang</label>
+                <input type="text" id="iNama" required style="width: 100%; padding: 8px; margin-top: 4px;">
+            </div>
+            <div style="margin-top: 10px;">
+                <label>Kategori</label>
+                <select id="iKategori" style="width: 100%; padding: 8px; margin-top: 4px;">
+                    <option value="FOOD">FOOD</option>
+                    <option value="TOPPING">TOPPING</option>
+                    <option value="SYRUP">SYRUP</option>
+                    <option value="POwdER">POWDER</option>
+                    <option value="BEANS">BEANS</option>
+                    <option value="DRINK">DRINK</option>
+                    <option value="UTILITY">UTILITY</option>
+                    <option value="THERMAL">THERMAL</option>
+                    <option value="STICKER">STICKER</option>
+                    <option value="ASSET 1">ASSET 1</option>
+                    <option value="CLEANLINESS">CLEANLINESS</option>
+                    <option value="CUP & LID">CUP & LID</option>
+                    <option value="TEA">TEA</option>
+                    <option value="PLASTIC">PLASTIC</option>
+                    <option value="DAIRY">DAIRY</option>
+                    <option value="SAUCE">SAUCE</option>
+                </select>
+            </div>
+            <div id="boxSubFood" style="margin-top: 10px; display: none;">
+                <label>Sub Kategori Food</label>
+                <select id="iSubFood" style="width: 100%; padding: 8px; margin-top: 4px;">
+                    <option value="SANDWICH">SANDWICH</option>
+                    <option value="POUND CAKE">POUND CAKE</option>
+                    <option value="PASTRY">PASTRY</option>
+                    <option value="ROLL CAKE">ROLL CAKE</option>
+                </select>
+            </div>
+            <div style="margin-top: 10px;">
+                <label>Deskripsi / Keterangan</label>
+                <input type="text" id="iDesc" placeholder="Opsional" style="width: 100%; padding: 8px; margin-top: 4px;">
+            </div>
+            <div style="margin-top: 10px; display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label>Stok Awal</label>
+                    <input type="number" id="iStok" min="0" value="0" required style="width: 100%; padding: 8px; margin-top: 4px;">
+                </div>
+                <div style="flex: 1;">
+                    <label>Satuan</label>
+                    <input type="text" id="iSatuan" value="pcs" required style="width: 100%; padding: 8px; margin-top: 4px;">
+                </div>
+            </div>
+            <div style="margin-top: 10px;">
+                <label>Batas Minimum (Alert Stok Menipis)</label>
+                <input type="number" id="iMin" min="1" value="5" required style="width: 100%; padding: 8px; margin-top: 4px;">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" class="cancel" style="padding: 8px 14px; border-radius: 6px; cursor: pointer;">Batal</button>
+                <button type="submit" style="padding: 8px 14px; background: #38bdf8; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Simpan</button>
+            </div>
+        </form>
+    </dialog>
 
-    <!-- PILIHAN STATUS TITO (Hanya muncul untuk Transfer In / Transfer Out) -->
-    <div id="boxStatusTito" style="margin-bottom:12px;">
-      <label for="eStatusTito">Status TITO</label>
-      <select id="eStatusTito" style="width:100%; padding:8px; border-radius:6px; background:var(--bg-main); color:var(--text-color); border:1px solid var(--border-color);">
-        <option value="Belum TITO">Belum TITO</option>
-        <option value="Sudah TITO">Sudah TITO</option>
-      </select>
-    </div>
+    <!-- Modal Edit Stok Barang -->
+    <dialog id="dEdit">
+        <form id="fEdit">
+            <h3>Edit Stok Barang</h3>
+            <p id="pEditNama" style="font-size: 13px; color: var(--text-sub); margin-bottom: 10px;"></p>
+            
+            <label>Opsi Transaksi</label>
+            <select id="eOpsi" style="width: 100%; padding: 8px; margin-top: 4px;">
+                <option value="Transfer In">Transfer In (Tambah Stok)</option>
+                <option value="Transfer Out">Transfer Out (Kurang Stok)</option>
+                <option value="Kebutuhan Operasional">Kebutuhan Operasional (-)</option>
+                <option value="Vendor">Vendor</option>
+            </select>
 
-    <div id="boxAksiVendor" style="display:none; margin-bottom:12px;">
-      <label for="eVendorAksi">Aksi Vendor</label>
-      <select id="eVendorAksi" style="width:100%; padding:8px; border-radius:6px; background:var(--bg-main); color:var(--text-color); border:1px solid var(--border-color);">
-        <option value="tambah">Tambah Stok (Masuk dari Vendor)</option>
-        <option value="kurang">Kurang Stok (Retur ke Vendor)</option>
-      </select>
-    </div>
+            <div id="boxAksiVendor" style="display: none; margin-top: 10px;">
+                <label>Aksi Vendor</label>
+                <select id="eVendorAksi" style="width: 100%; padding: 8px; margin-top: 4px;">
+                    <option value="tambah">Vendor In (Tambah Stok)</option>
+                    <option value="kurang">Vendor Out (Kurang Stok)</option>
+                </select>
+            </div>
 
-    <div class="row">
-      <div>
-        <label for="eQty">Jumlah</label>
-        <input id="eQty" type="number" min="1" value="1" required style="width:100%;">
-      </div>
-    </div>
+            <div id="boxStatusTito" style="margin-top: 10px;">
+                <label>Status TITO</label>
+                <select id="eStatusTito" style="width: 100%; padding: 8px; margin-top: 4px;">
+                    <option value="Belum TITO">Belum TITO</option>
+                    <option value="Sudah TITO">Sudah TITO</option>
+                </select>
+            </div>
 
-    <!-- TAMBAHAN INPUT TANGGAL KADALUWARSA -->
-    <div style="margin-top: 10px;">
-      <label for="eExpired">Tanggal Kedaluwarsa (Opsional)</label>
-      <input id="eExpired" type="date" style="width:100%; padding:8px; border-radius:6px; background:var(--bg-main); color:var(--text-color); border:1px solid var(--border-color); box-sizing: border-box;">
-    </div>
+            <div style="margin-top: 10px;">
+                <label>Jumlah (Qty)</label>
+                <input type="number" id="eQty" min="1" value="1" required style="width: 100%; padding: 8px; margin-top: 4px;">
+            </div>
 
-    <label for="eDesc" style="margin-top:10px;">Deskripsi / Catatan</label>
-    <input id="eDesc" maxlength="100" placeholder="Contoh: Pembelian supplier / Mutasi gudang" required style="width:100%;">
+            <div style="margin-top: 10px;">
+                <label>Tanggal Expired (Opsional)</label>
+                <input type="date" id="eExpired" style="width: 100%; padding: 8px; margin-top: 4px;">
+            </div>
 
-    <div class="foot" style="margin-top:15px; display:flex; justify-content:flex-end; gap:8px;">
-      <button type="button" class="cancel">Batal</button>
-      <button class="primary" type="submit">Simpan Perubahan</button>
-    </div>
-  </form>
-</dialog>
+            <!-- ID boxDesc agar deskripsi otomatis disembunyikan untuk Operasional & Vendor -->
+            <div id="boxDesc" style="margin-top: 10px;">
+                <label>Deskripsi / Catatan</label>
+                <input type="text" id="eDesc" placeholder="Contoh: Mutasi gudang" style="width: 100%; padding: 8px; margin-top: 4px;">
+            </div>
 
-<!-- DIALOG EDIT RIWAYAT (Khusus ubah Status TITO & Catatan dari Riwayat) -->
-<dialog id="dEditRiwayat">
-  <form method="dialog" id="fEditRiwayat">
-    <h2>Edit Status Transaksi</h2>
-    <p id="pEditRiwayatInfo" style="color: #38bdf8; font-weight: 600; margin-bottom: 12px; font-size: 14px;"></p>
-    
-    <label for="rStatusTito">Status TITO</label>
-    <select id="rStatusTito" required style="width:100%; padding:8px; margin-bottom:12px; border-radius:6px; background:var(--bg-main); color:var(--text-color); border:1px solid var(--border-color);">
-      <option value="Belum TITO">Belum TITO</option>
-      <option value="Sudah TITO">Sudah TITO</option>
-    </select>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" class="cancel" style="padding: 8px 14px; border-radius: 6px; cursor: pointer;">Batal</button>
+                <button type="submit" style="padding: 8px 14px; background: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Simpan Perubahan</button>
+            </div>
+        </form>
+    </dialog>
 
-    <label for="rCatatan">Deskripsi / Catatan</label>
-    <input id="rCatatan" maxlength="100" placeholder="Catatan transaksi" style="width:100%;">
+    <!-- Modal Catat Transaksi Header -->
+    <dialog id="dTrx">
+        <form id="fTrx">
+            <h3>Catat Transaksi Manual</h3>
+            <div style="margin-top: 10px;">
+                <label>Pilih Barang</label>
+                <select id="tItem" required style="width: 100%; padding: 8px; margin-top: 4px;"></select>
+            </div>
+            <div style="margin-top: 10px;">
+                <label>Jenis Transaksi</label>
+                <div id="segT" style="display: flex; gap: 5px; margin-top: 4px;">
+                    <button type="button" data-t="masuk" class="on" style="flex: 1; padding: 6px; cursor: pointer;">Masuk</button>
+                    <button type="button" data-t="keluar" style="flex: 1; padding: 6px; cursor: pointer;">Keluar</button>
+                </div>
+            </div>
+            <div style="margin-top: 10px;">
+                <label>Jumlah</label>
+                <div style="display: flex; gap: 5px; margin-top: 4px; align-items: center;">
+                    <button type="button" id="mn" style="padding: 6px 12px; cursor: pointer;">-</button>
+                    <input type="number" id="tQty" min="1" value="1" required style="flex: 1; text-align: center; padding: 6px;">
+                    <button type="button" id="pl" style="padding: 6px 12px; cursor: pointer;">+</button>
+                </div>
+            </div>
+            <div style="margin-top: 10px;">
+                <label>Catatan / Keterangan</label>
+                <input type="text" id="tCat" placeholder="Keterangan transaksi" style="width: 100%; padding: 8px; margin-top: 4px;">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" class="cancel" style="padding: 8px 14px; border-radius: 6px; cursor: pointer;">Batal</button>
+                <button type="submit" style="padding: 8px 14px; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Proses</button>
+            </div>
+        </form>
+    </dialog>
 
-    <div class="foot" style="margin-top:15px; display:flex; justify-content:flex-end; gap:8px;">
-      <button type="button" class="cancel">Batal</button>
-      <button class="primary" type="submit">Simpan</button>
-    </div>
-  </form>
-</dialog>
+    <!-- Modal Edit Riwayat TITO & Catatan -->
+    <dialog id="dEditRiwayat">
+        <form id="fEditRiwayat">
+            <h3>Edit Status TITO & Catatan</h3>
+            <p id="pEditRiwayatInfo" style="font-size: 13px; color: var(--text-sub); margin-bottom: 10px;"></p>
+            <div style="margin-top: 10px;">
+                <label>Status TITO</label>
+                <select id="rStatusTito" style="width: 100%; padding: 8px; margin-top: 4px;">
+                    <option value="Belum TITO">Belum TITO</option>
+                    <option value="Sudah TITO">Sudah TITO</option>
+                </select>
+            </div>
+            <div style="margin-top: 10px;">
+                <label>Catatan</label>
+                <input type="text" id="rCatatan" style="width: 100%; padding: 8px; margin-top: 4px;">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" class="cancel" style="padding: 8px 14px; border-radius: 6px; cursor: pointer;">Batal</button>
+                <button type="submit" style="padding: 8px 14px; background: #38bdf8; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Simpan</button>
+            </div>
+        </form>
+    </dialog>
 
-<!-- DIALOG CATAT TRANSAKSI -->
-<dialog id="dTrx">
-  <form method="dialog" id="fTrx">
-    <h2>Catat transaksi</h2>
-    <div class="seg tt" id="segT"><button type="button" data-t="masuk" class="on">Barang masuk</button><button type="button" data-t="keluar">Barang keluar</button></div>
-    <label for="tItem">Barang</label><select id="tItem"></select>
-    <label for="tQty">Jumlah</label>
-    <div class="step"><button type="button" id="mn" aria-label="Kurangi">−</button><input id="tQty" type="number" min="1" value="1" required><button type="button" id="pl" aria-label="Tambah">+</button></div>
-    <p class="pv" id="pv"></p>
-    <label for="tCat">Catatan (opsional)</label><input id="tCat" maxlength="80" placeholder="Contoh: pembelian dari supplier">
-    <div class="foot"><button type="button" class="cancel">Batal</button><button class="primary" type="submit" id="bTrx">Simpan transaksi</button></div>
-   </form>
-</dialog>
+    <!-- Modal Alert Stok Menipis / Habis (Solid / Tidak Transparan) -->
+    <dialog id="dAlerts">
+        <div style="padding: 20px; background: var(--bg-card); color: var(--text-color); border-radius: 12px; width: 400px; max-width: 90vw;">
+            <h3 id="tAlertsTitle" style="color: #38bdf8; margin-bottom: 12px; font-size: 16px;">Daftar Stok</h3>
+            <div id="contentAlertsList" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px;"></div>
+            <div style="text-align: right;">
+                <button onclick="document.getElementById('dAlerts').close()" style="padding: 6px 14px; background: var(--border-color); color: var(--text-color); border: none; border-radius: 6px; cursor: pointer;">Tutup</button>
+            </div>
+        </div>
+    </dialog>
 
-<!-- DIALOG HAPUS -->
-<dialog id="dDel">
-  <h2>Hapus barang?</h2>
-  <p class="hint" id="pDel" style="font-size:14px"></p>
-  <div class="foot"><button type="button" class="cancel">Batal</button><button class="danger" id="bDel">Hapus</button></div>
-</dialog>
-
-<!-- DIALOG DAFTAR STOK MENIPIS / HABIS (INTERAKTIF) -->
-<dialog id="dAlerts" style="background: var(--bg-card); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; width: 90%; max-width: 500px;">
-  <h2 id="tAlertsTitle" style="color: #38bdf8; font-size: 18px; margin-bottom: 15px;">Daftar Barang</h2>
-  <div id="contentAlertsList" style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
-    <!-- Daftar barang per kategori akan dirender di sini secara dinamis -->
-  </div>
-  <div class="foot" style="display: flex; justify-content: flex-end;">
-    <button type="button" class="cancel" onclick="document.getElementById('dAlerts').close()" style="background: var(--border-color); color: var(--text-color); border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Tutup</button>
-  </div>
-</dialog>
-
-<div id="toast"></div>
-
-<!-- INISIALISASI FIREBASE CLOUD FIRESTORE -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-analytics.js";
-  import {  
-    getFirestore, 
-    collection, 
-    addDoc, 
-    getDocs, 
-    getDoc,
-    updateDoc,
-    deleteDoc, 
-    doc,
-    onSnapshot 
-  } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyAf_k_MY54xL3HUNNcfu9PxGOJ7qiEOjJs",
-    authDomain: "stock-barang-9577f.firebaseapp.com",
-    projectId: "stock-barang-9577f",
-    storageBucket: "stock-barang-9577f.firebasestorage.app",
-    messagingSenderId: "640561152265",
-    appId: "1:640561152265:web:362541cc5acb355c62d3d8",
-    measurementId: "G-SCVG0J5635"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-  const db = getFirestore(app);
-
-  window.db = db;
-  window.collection = collection;
-  window.addDoc = addDoc;
-  window.getDocs = getDocs;
-  window.getDoc = getDoc;
-  window.updateDoc = updateDoc;
-  window.deleteDoc = deleteDoc;
-  window.doc = doc;
-  window.onSnapshot = onSnapshot;
-</script>
-
-<script src="app.js"></script>
+    <!-- Script Utama -->
+    <script src="app.js"></script>
 </body>
 </html>
