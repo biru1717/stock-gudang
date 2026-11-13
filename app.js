@@ -67,6 +67,7 @@ let tipeTrxModal = 'masuk';
 let selectedBarangEditId = null;
 let selectedRiwayatEditId = null;
 let itemToDeleteId = null;
+let hitungFisikMode = 'tambah';         // State mode hitung fisik ('tambah' atau 'kurang')
 
 function showToast(msg) {
     const t = document.getElementById('toast');
@@ -165,6 +166,18 @@ function initApp() {
                 console.error("Gagal menambah barang:", error);
                 alert("Terjadi kesalahan saat menyimpan data.");
             }
+        });
+    }
+
+    // --- EVENT LISTENER TOMBOL & MODAL HITUNG FISIK ---
+    const btnHitungFisik = document.getElementById('btnHitungFisik');
+    const dHitungFisik = document.getElementById('dHitungFisik');
+
+    if (btnHitungFisik && dHitungFisik) {
+        btnHitungFisik.addEventListener('click', async (e) => {
+            e.preventDefault();
+            await renderListHitungFisik();
+            dHitungFisik.showModal();
         });
     }
 
@@ -502,7 +515,154 @@ function initApp() {
     }
 }
 
-// --- 3. RENDER TOMBOL FILTER KATEGORI UTAMA ---
+// --- 3. FUNGSI PENDUKUNG HITUNG FISIK (STOCK OPNAME) ---
+function setHitungFisikMode(mode) {
+    hitungFisikMode = mode;
+    const btnTambah = document.getElementById('hfModeTambah');
+    const btnKurang = document.getElementById('hfModeKurang');
+
+    if (mode === 'tambah') {
+        if (btnTambah) { 
+            btnTambah.style.background = '#10b981'; 
+            btnTambah.style.color = 'white'; 
+            btnTambah.style.fontWeight = 'bold'; 
+        }
+        if (btnKurang) { 
+            btnKurang.style.background = 'var(--bg-main)'; 
+            btnKurang.style.color = 'var(--text-sub)'; 
+            btnKurang.style.fontWeight = 'normal'; 
+        }
+    } else {
+        if (btnKurang) { 
+            btnKurang.style.background = '#ef4444'; 
+            btnKurang.style.color = 'white'; 
+            btnKurang.style.fontWeight = 'bold'; 
+        }
+        if (btnTambah) { 
+            btnTambah.style.background = 'var(--bg-main)'; 
+            btnTambah.style.color = 'var(--text-sub)'; 
+            btnTambah.style.fontWeight = 'normal'; 
+        }
+    }
+}
+
+async function renderListHitungFisik() {
+    const container = document.getElementById('contentHitungFisikList');
+    if (!container) return;
+
+    container.innerHTML = '<p style="text-align: center; color: var(--text-sub);">Memuat data barang...</p>';
+
+    try {
+        const querySnapshot = await window.getDocs(window.collection(window.db, "stok_barang"));
+        let listBarang = [];
+        querySnapshot.forEach(docSnap => {
+            listBarang.push({ id: docSnap.id, ...docSnap.data() });
+        });
+
+        if (listBarang.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: var(--text-sub);">Belum ada barang di database.</p>';
+            return;
+        }
+
+        // Urutkan abjad berdasarkan nama barang
+        listBarang.sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
+
+        let html = '';
+        listBarang.forEach(b => {
+            html += `
+                <div style="background: var(--bg-main); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 600; color: var(--text-color); font-size: 14px;">${b.nama}</div>
+                        <div style="font-size: 12px; color: var(--text-sub);">Kategori: ${b.kategori || 'FOOD'} | Stok Saat Ini: <b style="color: #38bdf8;">${b.stok} ${b.satuan}</b></div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <input type="number" id="input_hf_${b.id}" min="0" value="" placeholder="Qty" style="width: 70px; padding: 6px; border-radius: 6px; background: var(--bg-card); color: var(--text-color); border: 1px solid var(--border-color); text-align: center;">
+                        <button onclick="prosesHitungFisik('${b.id}')" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">Proses</button>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    } catch (error) {
+        console.error("Gagal memuat daftar hitung fisik:", error);
+        container.innerHTML = '<p style="text-align: center; color: #ef4444;">Gagal memuat data barang.</p>';
+    }
+}
+
+async function prosesHitungFisik(id) {
+    const inputEl = document.getElementById(`input_hf_${id}`);
+    if (!inputEl) return;
+
+    const qtyInput = parseInt(inputEl.value);
+    if (isNaN(qtyInput) || qtyInput <= 0) {
+        alert('Masukkan jumlah (qty) yang valid!');
+        return;
+    }
+
+    try {
+        const barangDocRef = window.doc(window.db, "stok_barang", id);
+        const stokSnap = await window.getDocs(window.collection(window.db, "stok_barang"));
+        let barangData = null;
+
+        stokSnap.forEach(docSnap => {
+            if (docSnap.id === id) {
+                barangData = docSnap.data();
+            }
+        });
+
+        if (!barangData) {
+            alert('Barang tidak ditemukan!');
+            return;
+        }
+
+        let stokLama = Number(barangData.stok) || 0;
+        let stokBaru = stokLama;
+        let tipeTrxLabel = '';
+
+        if (hitungFisikMode === 'tambah') {
+            stokBaru += qtyInput;
+            tipeTrxLabel = 'Hitung Fisik (Tambah)';
+        } else {
+            if (stokLama < qtyInput) {
+                alert(`Stok tidak mencukupi! Stok saat ini hanya ${stokLama} ${barangData.satuan}.`);
+                return;
+            }
+            stokBaru -= qtyInput;
+            tipeTrxLabel = 'Hitung Fisik (Kurang)';
+        }
+
+        // Update stok di database tanpa mereset ke nol (mengakumulasikan ke stok lama)
+        await window.updateDoc(barangDocRef, { stok: stokBaru });
+
+        // Catat otomatis ke riwayat transaksi tanpa reason tambahan
+        await window.addDoc(window.collection(window.db, "riwayat_trx"), {
+            tipe: tipeTrxLabel,
+            namaBarang: barangData.nama,
+            kategori: barangData.kategori || 'FOOD',
+            jumlah: qtyInput,
+            satuan: barangData.satuan,
+            statusTito: '-',
+            catatan: `Penyesuaian hitung fisik (${hitungFisikMode === 'tambah' ? '+' : '-'}${qtyInput})`,
+            tanggal: new Date().toLocaleString('id-ID'),
+            createdAt: new Date().toISOString()
+        });
+
+        showToast(`Berhasil ${hitungFisikMode === 'tambah' ? 'menambahkan' : 'mengurangi'} ${qtyInput} ${barangData.satuan} pada "${barangData.nama}"!`);
+        
+        // Kosongkan input dan perbarui tampilan data secara real-time
+        inputEl.value = '';
+        renderListHitungFisik();
+        tampilkanData();
+        updateStatistik();
+
+    } catch (error) {
+        console.error("Gagal memproses hitung fisik:", error);
+        alert("Terjadi kesalahan saat memproses hitung fisik.");
+    }
+}
+
+// --- 4. RENDER TOMBOL FILTER KATEGORI UTAMA ---
 async function renderFilterKategori() {
     const filtersContainer = document.getElementById('filters');
     if (!filtersContainer) return;
@@ -594,7 +754,7 @@ function setChartTimeFilter(time) {
     tampilkanData(searchInput ? searchInput.value : '');
 }
 
-// --- 4. TAMPILKAN DATA & DIAGRAM DENGAN FILTER KATEGORI & WAKTU KHUSUS ---
+// --- 5. TAMPILKAN DATA & DIAGRAM DENGAN FILTER KATEGORI & WAKTU KHUSUS ---
 async function tampilkanData(keyword = '') {
     await renderFilterKategori();
     const main = document.getElementById('main');
@@ -929,7 +1089,7 @@ function renderStokView(listBarang, keyword, main) {
     main.innerHTML = html;
 }
 
-// --- 5. BUKA MODAL EDIT STOK ---
+// --- 6. BUKA MODAL EDIT STOK ---
 async function bukaModalEdit(id) {
     try {
         const querySnapshot = await window.getDocs(window.collection(window.db, "stok_barang"));
