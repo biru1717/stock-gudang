@@ -38,8 +38,9 @@
     <div class="hact">
       <button id="btnTheme" title="Ganti Tema" style="background: var(--bg-card); color: var(--text-color); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; cursor: pointer;">🌙 Mode</button>
       <button id="btnAdd">Tambah barang</button>
-      <!-- Tombol Fitur Hitung Fisik Baru -->
       <button id="btnHitungFisik" style="background: #f59e0b; color: #0f172a; font-weight: bold; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer;">Hitung Fisik</button>
+      <!-- Tombol Salin Laporan ke WhatsApp -->
+      <button id="btnCopyWa" style="background: #25d366; color: white; font-weight: bold; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer;" title="Salin Rangkuman ke WhatsApp">📱 Salin WA</button>
       <button class="primary" id="btnTrx">Catat transaksi</button>
     </div>
   </header>
@@ -211,22 +212,31 @@
    </form>
 </dialog>
 
-<!-- DIALOG HITUNG FISIK (STOCK OPNAME) BARU -->
-<dialog id="dHitungFisik" style="background: var(--bg-card); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; width: 90%; max-width: 600px;">
+<!-- DIALOG HITUNG FISIK (STOCK OPNAME) DENGAN PENCARIAN & SIMPAN SEMUA -->
+<dialog id="dHitungFisik" style="background: var(--bg-card); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; width: 90%; max-width: 650px;">
   <h2 style="color: #38bdf8; font-size: 18px; margin-bottom: 5px;">📊 Mode Hitung Fisik (Stock Opname)</h2>
-  <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 15px;">Pilih mode (Tambah/Kurang), lalu masukkan jumlah penyesuaian pada barang yang dihitung.</p>
+  <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 12px;">Pilih mode, cari/filter barang, isi jumlah qty, lalu klik Simpan Semua atau Simpan per item.</p>
   
-  <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+  <div style="display: flex; gap: 10px; margin-bottom: 12px;">
     <button type="button" id="hfModeTambah" class="on" onclick="setHitungFisikMode('tambah')" style="flex: 1; padding: 8px; border-radius: 6px; border: none; background: #10b981; color: white; font-weight: bold; cursor: pointer;">Mode: Tambah (+)</button>
     <button type="button" id="hfModeKurang" onclick="setHitungFisikMode('kurang')" style="flex: 1; padding: 8px; border-radius: 6px; border: none; background: var(--bg-main); color: var(--text-sub); border: 1px solid var(--border-color); cursor: pointer;">Mode: Kurang (-)</button>
   </div>
 
-  <div id="contentHitungFisikList" style="max-height: 350px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; padding-right: 5px;">
+  <!-- Kolom Pencarian & Filter Kategori di Modal Hitung Fisik -->
+  <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+    <input type="search" id="hfSearch" placeholder="Cari nama barang..." oninput="renderListHitungFisik()" style="flex: 1; min-width: 200px; padding: 8px; border-radius: 6px; background: var(--bg-main); color: var(--text-color); border: 1px solid var(--border-color); box-sizing: border-box;">
+    <select id="hfFilterKat" onchange="renderListHitungFisik()" style="padding: 8px; border-radius: 6px; background: var(--bg-main); color: var(--text-color); border: 1px solid var(--border-color);">
+      <option value="Semua">Semua Kategori</option>
+    </select>
+  </div>
+
+  <div id="contentHitungFisikList" style="max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; padding-right: 5px;">
     <!-- Daftar barang dimuat dinamis -->
   </div>
 
-  <div class="foot" style="display: flex; justify-content: flex-end; gap: 8px;">
-    <button type="button" class="cancel" onclick="document.getElementById('dHitungFisik').close()" style="background: var(--border-color); color: var(--text-color); border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Tutup / Selesai</button>
+  <div class="foot" style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 12px;">
+    <button type="button" onclick="prosesSimpanSemuaHitungFisik()" style="background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer;">💾 Simpan Semua Perubahan</button>
+    <button type="button" class="cancel" onclick="document.getElementById('dHitungFisik').close()" style="background: var(--border-color); color: var(--text-color); border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Tutup</button>
   </div>
 </dialog>
 
