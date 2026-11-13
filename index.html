@@ -6,7 +6,7 @@
 <title>Stok Barang</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
-<!-- 1. WAJIB ADA: Pustaka Chart.js untuk memunculkan diagram/histogram -->
+<!-- WAJIB: Pustaka Chart.js untuk menampilkan diagram/histogram di tab Riwayat -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -38,6 +38,8 @@
     <div class="hact">
       <button id="btnTheme" title="Ganti Tema" style="background: var(--bg-card); color: var(--text-color); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; cursor: pointer;">🌙 Mode</button>
       <button id="btnAdd">Tambah barang</button>
+      <!-- Tombol Fitur Hitung Fisik Baru -->
+      <button id="btnHitungFisik" style="background: #f59e0b; color: #0f172a; font-weight: bold; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer;">Hitung Fisik</button>
       <button class="primary" id="btnTrx">Catat transaksi</button>
     </div>
   </header>
@@ -207,6 +209,25 @@
     <label for="tCat">Catatan (opsional)</label><input id="tCat" maxlength="80" placeholder="Contoh: pembelian dari supplier">
     <div class="foot"><button type="button" class="cancel">Batal</button><button class="primary" type="submit" id="bTrx">Simpan transaksi</button></div>
    </form>
+</dialog>
+
+<!-- DIALOG HITUNG FISIK (STOCK OPNAME) BARU -->
+<dialog id="dHitungFisik" style="background: var(--bg-card); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; width: 90%; max-width: 600px;">
+  <h2 style="color: #38bdf8; font-size: 18px; margin-bottom: 5px;">📊 Mode Hitung Fisik (Stock Opname)</h2>
+  <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 15px;">Pilih mode (Tambah/Kurang), lalu masukkan jumlah penyesuaian pada barang yang dihitung.</p>
+  
+  <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+    <button type="button" id="hfModeTambah" class="on" onclick="setHitungFisikMode('tambah')" style="flex: 1; padding: 8px; border-radius: 6px; border: none; background: #10b981; color: white; font-weight: bold; cursor: pointer;">Mode: Tambah (+)</button>
+    <button type="button" id="hfModeKurang" onclick="setHitungFisikMode('kurang')" style="flex: 1; padding: 8px; border-radius: 6px; border: none; background: var(--bg-main); color: var(--text-sub); border: 1px solid var(--border-color); cursor: pointer;">Mode: Kurang (-)</button>
+  </div>
+
+  <div id="contentHitungFisikList" style="max-height: 350px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; padding-right: 5px;">
+    <!-- Daftar barang dimuat dinamis -->
+  </div>
+
+  <div class="foot" style="display: flex; justify-content: flex-end; gap: 8px;">
+    <button type="button" class="cancel" onclick="document.getElementById('dHitungFisik').close()" style="background: var(--border-color); color: var(--text-color); border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Tutup / Selesai</button>
+  </div>
 </dialog>
 
 <!-- DIALOG HAPUS -->
