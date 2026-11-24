@@ -67,7 +67,6 @@ let tipeTrxModal = 'masuk';
 let selectedBarangEditId = null;
 let selectedRiwayatEditId = null;
 let itemToDeleteId = null;
-let hitungFisikMode = 'tambah';         // State mode hitung fisik ('tambah' atau 'kurang')
 
 function showToast(msg) {
     const t = document.getElementById('toast');
@@ -582,34 +581,29 @@ async function salinLaporanKeWhatsApp() {
     }
 }
 
-// --- 4. FUNGSI PENDUKUNG HITUNG FISIK (DENGAN SEARCH, FILTER & SIMPAN SEMUA) ---
-function setHitungFisikMode(mode) {
-    hitungFisikMode = mode;
-    const btnTambah = document.getElementById('hfModeTambah');
-    const btnKurang = document.getElementById('hfModeKurang');
+// --- 4. FUNGSI HITUNG FISIK (STEPPER - QTY +, BLUR GLASS, & SIMPAN SEMUA) ---
+function ubahAngkaHitungFisik(id, delta) {
+    const inputEl = document.getElementById(`input_hf_${id}`);
+    if (!inputEl) return;
+    let val = parseInt(inputEl.value);
+    if (isNaN(val)) val = parseInt(inputEl.getAttribute('data-old')) || 0;
+    val += delta;
+    if (val < 0) val = 0;
+    inputEl.value = val;
+    tandaiPerubahanHitungFisik(id);
+}
 
-    if (mode === 'tambah') {
-        if (btnTambah) { 
-            btnTambah.style.background = '#10b981'; 
-            btnTambah.style.color = 'white'; 
-            btnTambah.style.fontWeight = 'bold'; 
-        }
-        if (btnKurang) { 
-            btnKurang.style.background = 'var(--bg-main)'; 
-            btnKurang.style.color = 'var(--text-sub)'; 
-            btnKurang.style.fontWeight = 'normal'; 
-        }
+function tandaiPerubahanHitungFisik(id) {
+    const inputEl = document.getElementById(`input_hf_${id}`);
+    if (!inputEl) return;
+    const oldVal = parseInt(inputEl.getAttribute('data-old')) || 0;
+    const newVal = parseInt(inputEl.value);
+    if (!isNaN(newVal) && newVal !== oldVal) {
+        inputEl.style.color = '#fbbf24';
+        inputEl.style.fontWeight = '800';
     } else {
-        if (btnKurang) { 
-            btnKurang.style.background = '#ef4444'; 
-            btnKurang.style.color = 'white'; 
-            btnKurang.style.fontWeight = 'bold'; 
-        }
-        if (btnTambah) { 
-            btnTambah.style.background = 'var(--bg-main)'; 
-            btnTambah.style.color = 'var(--text-sub)'; 
-            btnTambah.style.fontWeight = 'normal'; 
-        }
+        inputEl.style.color = '#f8fafc';
+        inputEl.style.fontWeight = '700';
     }
 }
 
@@ -619,7 +613,7 @@ async function renderListHitungFisik() {
     const searchInput = document.getElementById('hfSearch');
     if (!container) return;
 
-    container.innerHTML = '<p style="text-align: center; color: var(--text-sub);">Memuat data barang...</p>';
+    container.innerHTML = '<p style="text-align: center; color: #cbd5e1; padding: 20px;">Memuat data barang...</p>';
 
     try {
         const querySnapshot = await window.getDocs(window.collection(window.db, "stok_barang"));
@@ -635,7 +629,7 @@ async function renderListHitungFisik() {
         if (selectKat && selectKat.options.length <= 1) {
             let currentVal = selectKat.value;
             let katHtml = '<option value="Semua">Semua Kategori</option>';
-            categories.forEach(kat => {
+            Array.from(categories).sort().forEach(kat => {
                 katHtml += `<option value="${kat}">${kat}</option>`;
             });
             selectKat.innerHTML = katHtml;
@@ -653,7 +647,7 @@ async function renderListHitungFisik() {
         });
 
         if (filtered.length === 0) {
-            container.innerHTML = '<p style="text-align: center; color: var(--text-sub);">Tidak ada barang yang cocok.</p>';
+            container.innerHTML = '<p style="text-align: center; color: #cbd5e1; padding: 20px;">Tidak ada barang yang cocok.</p>';
             return;
         }
 
@@ -661,15 +655,20 @@ async function renderListHitungFisik() {
 
         let html = '';
         filtered.forEach(b => {
+            const stokAwal = Number(b.stok) || 0;
             html += `
-                <div style="background: var(--bg-main); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;" data-id="${b.id}">
-                    <div>
-                        <div style="font-weight: 600; color: var(--text-color); font-size: 14px;">${b.nama}</div>
-                        <div style="font-size: 12px; color: var(--text-sub);">Kategori: ${b.kategori || 'FOOD'} | Stok Saat Ini: <b style="color: #38bdf8;">${b.stok} ${b.satuan}</b></div>
+                <div style="background: rgba(30, 41, 59, 0.72); backdrop-filter: blur(10px); padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); display: flex; justify-content: space-between; align-items: center; gap: 10px;" data-id="${b.id}">
+                    <div style="min-width: 0; flex: 1;">
+                        <div style="font-weight: 600; color: #f8fafc; font-size: 14px;">${b.nama}</div>
+                        <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Kategori: ${b.kategori || 'FOOD'} | Awal: <b style="color: #38bdf8;">${stokAwal} ${b.satuan}</b></div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <input type="number" id="input_hf_${b.id}" class="hf-qty-input" data-id="${b.id}" min="0" value="" placeholder="Qty" style="width: 70px; padding: 6px; border-radius: 6px; background: var(--bg-card); color: var(--text-color); border: 1px solid var(--border-color); text-align: center;">
-                        <button onclick="prosesHitungFisik('${b.id}')" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">Proses</button>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                        <div style="display: inline-flex; align-items: center; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 8px; overflow: hidden;">
+                            <button type="button" onclick="ubahAngkaHitungFisik('${b.id}', -1)" title="Kurangi" style="background: transparent; color: #f8fafc; border: none; width: 32px; height: 34px; font-size: 18px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center;">−</button>
+                            <input type="number" id="input_hf_${b.id}" class="hf-qty-input" data-id="${b.id}" data-old="${stokAwal}" min="0" value="${stokAwal}" oninput="tandaiPerubahanHitungFisik('${b.id}')" style="width: 54px; height: 34px; padding: 0 4px; background: transparent; color: #f8fafc; border: none; border-left: 1px solid rgba(255, 255, 255, 0.1); border-right: 1px solid rgba(255, 255, 255, 0.1); text-align: center; font-weight: 700; font-size: 14px; outline: none;">
+                            <button type="button" onclick="ubahAngkaHitungFisik('${b.id}', 1)" title="Tambah" style="background: transparent; color: #f8fafc; border: none; width: 32px; height: 34px; font-size: 18px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center;">+</button>
+                        </div>
+                        <button type="button" onclick="prosesHitungFisik('${b.id}')" style="background: #3b82f6; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600;">Simpan</button>
                     </div>
                 </div>
             `;
@@ -678,7 +677,7 @@ async function renderListHitungFisik() {
         container.innerHTML = html;
     } catch (error) {
         console.error("Gagal memuat daftar hitung fisik:", error);
-        container.innerHTML = '<p style="text-align: center; color: #ef4444;">Gagal memuat data barang.</p>';
+        container.innerHTML = '<p style="text-align: center; color: #ef4444; padding: 20px;">Gagal memuat data barang.</p>';
     }
 }
 
@@ -686,9 +685,9 @@ async function prosesHitungFisik(id) {
     const inputEl = document.getElementById(`input_hf_${id}`);
     if (!inputEl) return;
 
-    const qtyInput = parseInt(inputEl.value);
-    if (isNaN(qtyInput) || qtyInput <= 0) {
-        alert('Masukkan jumlah (qty) yang valid!');
+    const stokBaru = parseInt(inputEl.value);
+    if (isNaN(stokBaru) || stokBaru < 0) {
+        alert('Masukkan jumlah stok fisik yang valid (minimal 0)!');
         return;
     }
 
@@ -703,20 +702,15 @@ async function prosesHitungFisik(id) {
 
         let barangData = barangSnap.data();
         let stokLama = Number(barangData.stok) || 0;
-        let stokBaru = stokLama;
-        let tipeTrxLabel = '';
+        let selisih = stokBaru - stokLama;
 
-        if (hitungFisikMode === 'tambah') {
-            stokBaru += qtyInput;
-            tipeTrxLabel = 'Hitung Fisik (Tambah)';
-        } else {
-            if (stokLama < qtyInput) {
-                alert(`Stok tidak mencukupi! Stok saat ini hanya ${stokLama} ${barangData.satuan}.`);
-                return;
-            }
-            stokBaru -= qtyInput;
-            tipeTrxLabel = 'Hitung Fisik (Kurang)';
+        if (selisih === 0) {
+            showToast(`Stok "${barangData.nama}" tidak berubah (${stokBaru} ${barangData.satuan}).`);
+            return;
         }
+
+        let tipeTrxLabel = selisih > 0 ? 'Hitung Fisik (Tambah)' : 'Hitung Fisik (Kurang)';
+        let catatanTrx = `Hitung fisik: ${stokLama} → ${stokBaru} ${barangData.satuan} (${selisih > 0 ? '+' : ''}${selisih})`;
 
         await window.updateDoc(barangDocRef, { stok: stokBaru });
 
@@ -724,16 +718,15 @@ async function prosesHitungFisik(id) {
             tipe: tipeTrxLabel,
             namaBarang: barangData.nama,
             kategori: barangData.kategori || 'FOOD',
-            jumlah: qtyInput,
+            jumlah: Math.abs(selisih),
             satuan: barangData.satuan,
             statusTito: '-',
-            catatan: `Penyesuaian hitung fisik (${hitungFisikMode === 'tambah' ? '+' : '-'}${qtyInput})`,
+            catatan: catatanTrx,
             tanggal: new Date().toLocaleString('id-ID'),
             createdAt: new Date().toISOString()
         });
 
-        showToast(`Berhasil memperbarui "${barangData.nama}"!`);
-        inputEl.value = '';
+        showToast(`Stok "${barangData.nama}" diperbarui menjadi ${stokBaru} ${barangData.satuan}!`);
         renderListHitungFisik();
         tampilkanData();
         updateStatistik();
@@ -750,8 +743,10 @@ async function prosesSimpanSemuaHitungFisik() {
 
     try {
         for (let inputEl of allInputs) {
-            let val = parseInt(inputEl.value);
-            if (!isNaN(val) && val > 0) {
+            let stokBaru = parseInt(inputEl.value);
+            let oldAttr = parseInt(inputEl.getAttribute('data-old')) || 0;
+
+            if (!isNaN(stokBaru) && stokBaru >= 0 && stokBaru !== oldAttr) {
                 let id = inputEl.getAttribute('data-id');
                 const barangDocRef = window.doc(window.db, "stok_barang", id);
                 const barangSnap = await window.getDoc(barangDocRef);
@@ -759,20 +754,12 @@ async function prosesSimpanSemuaHitungFisik() {
                 if (barangSnap.exists()) {
                     let barangData = barangSnap.data();
                     let stokLama = Number(barangData.stok) || 0;
-                    let stokBaru = stokLama;
-                    let tipeTrxLabel = '';
+                    let selisih = stokBaru - stokLama;
 
-                    if (hitungFisikMode === 'tambah') {
-                        stokBaru += val;
-                        tipeTrxLabel = 'Hitung Fisik (Tambah)';
-                    } else {
-                        if (stokLama >= val) {
-                            stokBaru -= val;
-                            tipeTrxLabel = 'Hitung Fisik (Kurang)';
-                        } else {
-                            continue;
-                        }
-                    }
+                    if (selisih === 0) continue;
+
+                    let tipeTrxLabel = selisih > 0 ? 'Hitung Fisik (Tambah)' : 'Hitung Fisik (Kurang)';
+                    let catatanTrx = `Hitung fisik massal: ${stokLama} → ${stokBaru} ${barangData.satuan} (${selisih > 0 ? '+' : ''}${selisih})`;
 
                     await window.updateDoc(barangDocRef, { stok: stokBaru });
 
@@ -780,10 +767,10 @@ async function prosesSimpanSemuaHitungFisik() {
                         tipe: tipeTrxLabel,
                         namaBarang: barangData.nama,
                         kategori: barangData.kategori || 'FOOD',
-                        jumlah: val,
+                        jumlah: Math.abs(selisih),
                         satuan: barangData.satuan,
                         statusTito: '-',
-                        catatan: `Penyesuaian hitung fisik massal (${hitungFisikMode === 'tambah' ? '+' : '-'}${val})`,
+                        catatan: catatanTrx,
                         tanggal: new Date().toLocaleString('id-ID'),
                         createdAt: new Date().toISOString()
                     });
@@ -794,12 +781,12 @@ async function prosesSimpanSemuaHitungFisik() {
         }
 
         if (countUpdated > 0) {
-            showToast(`Berhasil menyimpan ${countUpdated} perubahan barang sekaligus!`);
+            showToast(`Berhasil menyimpan ${countUpdated} perubahan hitung fisik sekaligus!`);
             renderListHitungFisik();
             tampilkanData();
             updateStatistik();
         } else {
-            alert('Tidak ada input jumlah (qty) yang diisi atau stok tidak mencukupi.');
+            alert('Belum ada angka stok fisik yang diubah.');
         }
 
     } catch (error) {
